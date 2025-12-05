@@ -1,0 +1,91 @@
+export const RUBROS_COMERCIO = {
+  'Alimentación y Gastronomía': [
+    'Restaurante',
+    'Cafetería',
+    'Bar',
+    'Panadería y Pastelería',
+    'Supermercado',
+    'Almacén',
+    'Verdulería y Frutería',
+    'Carnicería',
+    'Dietética',
+  ],
+  'Salud y Cuidado Personal': [
+    'Farmacia',
+    'Consultorio Médico',
+    'Consultorio Odontológico',
+    'Peluquería y Barbería',
+    'Centro de Estética',
+    'Gimnasio',
+    'Óptica',
+  ],
+  'Comercio Minorista General': [
+    'Indumentaria',
+    'Calzado',
+    'Librería',
+    'Juguetería',
+    'Ferretería',
+    'Tienda de Mascotas',
+    'Electrónica',
+    'Artículos para el Hogar',
+  ],
+  'Servicios de Mantenimiento': [
+    'Plomería',
+    'Electricidad',
+    'Cerrajería',
+    'Servicio Técnico de PC',
+    'Reparación de Celulares',
+    'Lavadero de Autos',
+  ],
+  'Bienes Raíces y Vehículos': [
+    'Inmobiliaria',
+    'Concesionaria de Autos',
+    'Alquiler de Autos',
+    'Mecánica Automotriz',
+  ],
+  'Ocio y Entretenimiento': [
+    'Cine',
+    'Teatro',
+    'Centro Cultural',
+    'Agencia de Turismo',
+    'Salón de Fiestas',
+  ],
+};
+
+export const RUBROS_SERVICIO = [
+  'Electricista',
+  'Plomero (Fontanero) y Gasista',
+  'Albañil y Constructor',
+  'Carpintero',
+  'Herrero',
+  'Mecánico Automotriz',
+  'Gomero (Vulcanizador)',
+  'Chapista y Pintor',
+  'Esteticista Personal',
+  'Masajista y Fisioterapeuta',
+  'Servicios Gastronómicos (Cocinero/Camarero)',
+  'Panadero/Repostero',
+  'Servicios de Limpieza',
+  'Cuidado de Personas (Niñera/Cuidador)',
+  'Jardinero y Paisajista',
+];
+
+export const RUBROS_ORGANIZACION = [
+  'Policía',
+  'Bomberos',
+  'Hospital / Sala de Emergencias',
+  'Escuela Primaria / Secundaria',
+  'Municipalidad / Ayuntamiento',
+  'Defensa Civil',
+  'Centro Comunitario',
+];
+
+export const DIAS_SEMANA = [
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado',
+  'Domingo',
+];

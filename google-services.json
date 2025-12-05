@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "770675581016",
+    "firebase_url": "https://studio-8462520778-609ca-default-rtdb.firebaseio.com",
+    "project_id": "studio-8462520778-609ca",
+    "storage_bucket": "studio-8462520778-609ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770675581016:android:4cdc775b85bff6c8a82a2d",
+        "android_client_info": {
+          "package_name": "app.rork.al_toke_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "770675581016-o8e1rl2b47u47rm93b3ffpa60r4qh1ud.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDanEd_EwP1f8j1aJyYTSADoltI1E-nNq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "770675581016-o8e1rl2b47u47rm93b3ffpa60r4qh1ud.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
