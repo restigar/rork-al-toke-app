@@ -18,7 +18,7 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
 
   const loadData = useCallback(async () => {
     try {
-      const [comerciosJson, ofertasJson, ofertasDiaJson, clientesJson, counterJson] = await Promise.all([
+      const [comerciosJson, ofertasJson, ofertasDiaJson, , counterJson] = await Promise.all([
         AsyncStorage.getItem(COMERCIOS_KEY),
         AsyncStorage.getItem(OFERTAS_KEY),
         AsyncStorage.getItem(OFERTAS_DIA_KEY),
