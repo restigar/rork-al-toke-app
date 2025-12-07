@@ -95,9 +95,15 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
 
   const getOfertasActivas = useCallback((): Oferta[] => {
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
     return ofertas.filter(o => {
       const inicio = new Date(o.vigenciaInicio);
+      inicio.setHours(0, 0, 0, 0);
+      
       const fin = new Date(o.vigenciaFin);
+      fin.setHours(23, 59, 59, 999);
+      
       return now >= inicio && now <= fin;
     });
   }, [ofertas]);
