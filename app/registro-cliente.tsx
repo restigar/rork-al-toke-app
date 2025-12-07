@@ -196,9 +196,9 @@ export default function RegistroCliente() {
       setIsRegistering(false);
       
       if (isBiometricAvailable && !isBiometricEnabled) {
-        setTimeout(() => offerBiometricSetup(), 500);
+        offerBiometricSetup();
       } else {
-        Alert.alert('Éxito', '¡Registro completado!', [
+        Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
           { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
         ]);
       }

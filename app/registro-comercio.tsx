@@ -193,15 +193,17 @@ export default function RegistroComercio() {
         return;
       }
 
+      console.log('✅ Documento creado exitosamente. Iniciando login...');
       await saveComercio(newComercio);
       await login(newComercio, { email, password, type: 'comercio' });
+      console.log('✅ Login completado exitosamente');
       
       setIsRegistering(false);
       
       if (isBiometricAvailable && !isBiometricEnabled) {
-        setTimeout(() => offerBiometricSetup(), 500);
+        offerBiometricSetup();
       } else {
-        Alert.alert('Éxito', '¡Registro completado!', [
+        Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
           { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
         ]);
       }

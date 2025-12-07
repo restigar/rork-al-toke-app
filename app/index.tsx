@@ -16,10 +16,9 @@ import { useRouter, Href } from 'expo-router';
 import { LogIn, User, Store, X, Eye, EyeOff, Fingerprint, MessageCircle, Mail } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import LocationPermissionModal from '../components/LocationPermissionModal';
-import { useBusiness } from '../context/BusinessContext';
 import { trpc } from '@/lib/trpc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
+import { signIn as firebaseSignIn, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
 import { getDocument } from '../lib/firebase-firestore';
 import type { Cliente, Comercio } from '../types';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +30,6 @@ export default function LandingPage() {
   const router = useRouter();
   const auth = useAuth();
   const { login, isBiometricEnabled, isBiometricAvailable, authenticateWithBiometric, showLocationPrompt, requestLocationPermission, skipLocationPermission, enableBiometric, getCredentials } = auth;
-  const { comercios } = useBusiness();
   const insets = useSafeAreaInsets();
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
@@ -142,22 +140,46 @@ export default function LandingPage() {
         return;
       }
     } catch {
-      console.log('No es administrador, verificando comercio...');
+      console.log('No es administrador, verificando con Firebase...');
     }
 
-    const comercio = comercios.find(c => c.email === email);
-    
-    if (comercio) {
-      await login(comercio, { email, password, type: 'comercio' });
-      setShowLoginModal(false);
+    try {
+      const { user: firebaseUser, error: authError } = await firebaseSignIn(email, password);
       
-      if (isBiometricAvailable && !isBiometricEnabled) {
-        setTimeout(() => offerBiometricSetup(), 500);
+      if (authError || !firebaseUser) {
+        Alert.alert(t('error'), authError || t('userNotFound'));
+        return;
       }
-      
-      router.replace('/comercio/dashboard');
-    } else {
-      Alert.alert(t('error'), t('userNotFound'));
+
+      const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
+      if (clienteData) {
+        await login(clienteData as Cliente, { email, password, type: 'cliente' });
+        setShowLoginModal(false);
+        
+        if (isBiometricAvailable && !isBiometricEnabled) {
+          setTimeout(() => offerBiometricSetup(), 500);
+        }
+        
+        router.replace('/cliente/perfil');
+        return;
+      }
+
+      const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
+      if (comercioData) {
+        await login(comercioData as Comercio, { email, password, type: 'comercio' });
+        setShowLoginModal(false);
+        
+        if (isBiometricAvailable && !isBiometricEnabled) {
+          setTimeout(() => offerBiometricSetup(), 500);
+        }
+        
+        router.replace('/comercio/dashboard');
+        return;
+      }
+
+      Alert.alert(t('error'), 'No se encontró una cuenta asociada. Por favor regístrate primero.');
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message || t('loginError'));
     }
   };
 
@@ -185,16 +207,31 @@ export default function LandingPage() {
             return;
           }
         } else {
-          const comercio = comercios.find(c => c.email === credentials.email);
-          if (comercio) {
-            await login(comercio);
+          const { user: firebaseUser, error: authError } = await firebaseSignIn(credentials.email, credentials.password);
+          
+          if (authError || !firebaseUser) {
+            Alert.alert(t('error'), authError || t('loginError'));
+            return;
+          }
+
+          const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
+          if (clienteData) {
+            await login(clienteData as Cliente);
+            setShowLoginModal(false);
+            router.replace('/cliente/perfil');
+            return;
+          }
+
+          const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
+          if (comercioData) {
+            await login(comercioData as Comercio);
             setShowLoginModal(false);
             router.replace('/comercio/dashboard');
             return;
           }
         }
-      } catch {
-        Alert.alert(t('error'), t('loginError'));
+      } catch (error: any) {
+        Alert.alert(t('error'), error.message || t('loginError'));
       }
     }
   };
