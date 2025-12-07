@@ -13,15 +13,21 @@ export default function OfertasActivas() {
 
   const isOfertaActiva = (oferta: any) => {
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    const inicio = new Date(oferta.vigenciaInicio);
-    inicio.setHours(0, 0, 0, 0);
+    const inicioDate = new Date(oferta.vigenciaInicio);
+    const inicio = new Date(inicioDate.getFullYear(), inicioDate.getMonth(), inicioDate.getDate());
     
-    const fin = new Date(oferta.vigenciaFin);
-    fin.setHours(23, 59, 59, 999);
+    const finDate = new Date(oferta.vigenciaFin);
+    const fin = new Date(finDate.getFullYear(), finDate.getMonth(), finDate.getDate());
     
-    return now >= inicio && now <= fin;
+    console.log('🔍 Verificando oferta:', oferta.titulo);
+    console.log('📅 Fecha actual:', todayStart.toLocaleDateString('es-AR'));
+    console.log('📅 Fecha inicio:', inicio.toLocaleDateString('es-AR'));
+    console.log('📅 Fecha fin:', fin.toLocaleDateString('es-AR'));
+    console.log('✅ Activa:', todayStart >= inicio && todayStart <= fin);
+    
+    return todayStart >= inicio && todayStart <= fin;
   };
 
   const ofertasActivas = ofertas.filter(isOfertaActiva);
