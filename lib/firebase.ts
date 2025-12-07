@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore, enableNetwork } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
@@ -33,6 +33,10 @@ if (!getApps().length) {
       cacheSizeBytes: CACHE_SIZE_UNLIMITED,
     });
   }
+  
+  enableNetwork(db)
+    .then(() => console.log('✅ Firestore network habilitada'))
+    .catch((err) => console.log('⚠️ Firestore network:', err.message));
   
   auth = getAuth(app);
   storage = getStorage(app);

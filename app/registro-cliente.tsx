@@ -62,9 +62,14 @@ export default function RegistroCliente() {
       const { data: existingCliente } = await getDocument('clientes', firebaseUser.uid);
       
       if (existingCliente) {
-        await login(existingCliente as Cliente);
-        setIsRegistering(false);
-        router.replace('/cliente/perfil');
+        try {
+          await login(existingCliente as Cliente);
+          setIsRegistering(false);
+          router.replace('/cliente/perfil');
+        } catch {
+          setIsRegistering(false);
+          Alert.alert('Error', 'Error al iniciar sesión');
+        }
         return;
       }
 
@@ -80,13 +85,24 @@ export default function RegistroCliente() {
         fotoPerfil: firebaseUser.photoURL || undefined,
       };
 
-      await createDocument('clientes', firebaseUser.uid, newCliente);
-      await login(newCliente);
+      const { success: createSuccess, error: createError } = await createDocument('clientes', firebaseUser.uid, newCliente);
       
-      setIsRegistering(false);
-      Alert.alert('Éxito', '¡Registro completado con Google!', [
-        { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
-      ]);
+      if (!createSuccess || createError) {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al guardar datos del cliente');
+        return;
+      }
+      
+      try {
+        await login(newCliente);
+        setIsRegistering(false);
+        Alert.alert('Éxito', '¡Registro completado con Google!', [
+          { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
+        ]);
+      } catch {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al iniciar sesión');
+      }
     } catch (error: any) {
       setIsRegistering(false);
       Alert.alert('Error', error.message || 'Error al registrar con Google');
@@ -107,9 +123,14 @@ export default function RegistroCliente() {
       const { data: existingCliente } = await getDocument('clientes', firebaseUser.uid);
       
       if (existingCliente) {
-        await login(existingCliente as Cliente);
-        setIsRegistering(false);
-        router.replace('/cliente/perfil');
+        try {
+          await login(existingCliente as Cliente);
+          setIsRegistering(false);
+          router.replace('/cliente/perfil');
+        } catch {
+          setIsRegistering(false);
+          Alert.alert('Error', 'Error al iniciar sesión');
+        }
         return;
       }
 
@@ -125,13 +146,24 @@ export default function RegistroCliente() {
         fotoPerfil: firebaseUser.photoURL || undefined,
       };
 
-      await createDocument('clientes', firebaseUser.uid, newCliente);
-      await login(newCliente);
+      const { success: createSuccess, error: createError } = await createDocument('clientes', firebaseUser.uid, newCliente);
       
-      setIsRegistering(false);
-      Alert.alert('Éxito', '¡Registro completado con Apple!', [
-        { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
-      ]);
+      if (!createSuccess || createError) {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al guardar datos del cliente');
+        return;
+      }
+      
+      try {
+        await login(newCliente);
+        setIsRegistering(false);
+        Alert.alert('Éxito', '¡Registro completado con Apple!', [
+          { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
+        ]);
+      } catch {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al iniciar sesión');
+      }
     } catch (error: any) {
       setIsRegistering(false);
       Alert.alert('Error', error.message || 'Error al registrar con Apple');
@@ -190,8 +222,17 @@ export default function RegistroCliente() {
       }
 
       console.log('✅ Documento creado exitosamente. Iniciando login...');
-      await login(newCliente, { email, password, type: 'cliente' });
-      console.log('✅ Login completado exitosamente');
+      
+      try {
+        await login(newCliente, { email, password, type: 'cliente' });
+        console.log('✅ Login completado exitosamente');
+      } catch (loginError: any) {
+        console.error('❌ Error en login:', loginError);
+        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
+        setIsRegistering(false);
+        router.replace('/');
+        return;
+      }
       
       setIsRegistering(false);
       

@@ -62,10 +62,15 @@ export default function RegistroComercio() {
       const { data: existingComercio } = await getDocument('comercios', firebaseUser.uid);
       
       if (existingComercio) {
-        await saveComercio(existingComercio as Comercio);
-        await login(existingComercio as Comercio);
-        setIsRegistering(false);
-        router.replace('/comercio/dashboard');
+        try {
+          await saveComercio(existingComercio as Comercio);
+          await login(existingComercio as Comercio);
+          setIsRegistering(false);
+          router.replace('/comercio/dashboard');
+        } catch {
+          setIsRegistering(false);
+          Alert.alert('Error', 'Error al iniciar sesión');
+        }
         return;
       }
 
@@ -82,14 +87,25 @@ export default function RegistroComercio() {
         fotoPerfil: firebaseUser.photoURL || undefined,
       };
 
-      await createDocument('comercios', firebaseUser.uid, newComercio);
-      await saveComercio(newComercio);
-      await login(newComercio);
+      const { success: createSuccess, error: createError } = await createDocument('comercios', firebaseUser.uid, newComercio);
       
-      setIsRegistering(false);
-      Alert.alert('Éxito', '¡Registro completado con Google!', [
-        { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
-      ]);
+      if (!createSuccess || createError) {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al guardar datos del comercio');
+        return;
+      }
+      
+      try {
+        await saveComercio(newComercio);
+        await login(newComercio);
+        setIsRegistering(false);
+        Alert.alert('Éxito', '¡Registro completado con Google!', [
+          { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
+        ]);
+      } catch {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al iniciar sesión');
+      }
     } catch (error: any) {
       setIsRegistering(false);
       Alert.alert('Error', error.message || 'Error al registrar con Google');
@@ -110,10 +126,15 @@ export default function RegistroComercio() {
       const { data: existingComercio } = await getDocument('comercios', firebaseUser.uid);
       
       if (existingComercio) {
-        await saveComercio(existingComercio as Comercio);
-        await login(existingComercio as Comercio);
-        setIsRegistering(false);
-        router.replace('/comercio/dashboard');
+        try {
+          await saveComercio(existingComercio as Comercio);
+          await login(existingComercio as Comercio);
+          setIsRegistering(false);
+          router.replace('/comercio/dashboard');
+        } catch {
+          setIsRegistering(false);
+          Alert.alert('Error', 'Error al iniciar sesión');
+        }
         return;
       }
 
@@ -130,14 +151,25 @@ export default function RegistroComercio() {
         fotoPerfil: firebaseUser.photoURL || undefined,
       };
 
-      await createDocument('comercios', firebaseUser.uid, newComercio);
-      await saveComercio(newComercio);
-      await login(newComercio);
+      const { success: createSuccess, error: createError } = await createDocument('comercios', firebaseUser.uid, newComercio);
       
-      setIsRegistering(false);
-      Alert.alert('Éxito', '¡Registro completado con Apple!', [
-        { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
-      ]);
+      if (!createSuccess || createError) {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al guardar datos del comercio');
+        return;
+      }
+      
+      try {
+        await saveComercio(newComercio);
+        await login(newComercio);
+        setIsRegistering(false);
+        Alert.alert('Éxito', '¡Registro completado con Apple!', [
+          { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
+        ]);
+      } catch {
+        setIsRegistering(false);
+        Alert.alert('Error', 'Error al iniciar sesión');
+      }
     } catch (error: any) {
       setIsRegistering(false);
       Alert.alert('Error', error.message || 'Error al registrar con Apple');
@@ -194,9 +226,18 @@ export default function RegistroComercio() {
       }
 
       console.log('✅ Documento creado exitosamente. Iniciando login...');
-      await saveComercio(newComercio);
-      await login(newComercio, { email, password, type: 'comercio' });
-      console.log('✅ Login completado exitosamente');
+      
+      try {
+        await saveComercio(newComercio);
+        await login(newComercio, { email, password, type: 'comercio' });
+        console.log('✅ Login completado exitosamente');
+      } catch (loginError: any) {
+        console.error('❌ Error en login:', loginError);
+        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
+        setIsRegistering(false);
+        router.replace('/');
+        return;
+      }
       
       setIsRegistering(false);
       
