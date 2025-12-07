@@ -227,19 +227,19 @@ export default function RegistroComercio() {
 
       console.log('✅ Documento creado exitosamente. Iniciando login...');
       
+      setIsRegistering(false);
+
       try {
-        await saveComercio(newComercio);
-        await login(newComercio, { email, password, type: 'comercio' });
-        console.log('✅ Login completado exitosamente');
+        saveComercio(newComercio).catch(err => {
+          console.error('⚠️ Error async guardando comercio:', err);
+        });
+        login(newComercio, { email, password, type: 'comercio' }).catch(err => {
+          console.error('⚠️ Error async en login:', err);
+        });
+        console.log('✅ Login iniciado');
       } catch (loginError: any) {
         console.error('❌ Error en login:', loginError);
-        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
-        setIsRegistering(false);
-        router.replace('/');
-        return;
       }
-      
-      setIsRegistering(false);
       
       if (isBiometricAvailable && !isBiometricEnabled) {
         offerBiometricSetup();

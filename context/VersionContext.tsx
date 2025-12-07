@@ -24,7 +24,7 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
   const [isVersionValid, setIsVersionValid] = useState<boolean>(true);
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
   const [versionConfig, setVersionConfig] = useState<VersionConfig | null>(null);
-  const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [isChecking, setIsChecking] = useState<boolean>(false);
 
   const currentVersion = Constants.expoConfig?.version || '1.0.0';
 
@@ -43,20 +43,32 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
     return true;
   };
 
-  const checkVersion = async () => {
+  const checkVersion = useCallback(async () => {
     if (Platform.OS === 'web') {
-      setIsChecking(false);
       setIsVersionValid(true);
       return;
     }
 
+    setIsChecking(true);
+    
     try {
       console.log('🔍 Verificando versión de la app:', currentVersion);
 
-      const { data, error } = await getDocument<VersionConfig>('config', 'version');
+      const timeoutPromise = new Promise<{ data: null; error: string }>((resolve) => {
+        setTimeout(() => {
+          resolve({ data: null, error: 'timeout' });
+        }, 5000);
+      });
+
+      const result = await Promise.race([
+        getDocument<VersionConfig>('config', 'version'),
+        timeoutPromise,
+      ]);
+
+      const { data, error } = result;
 
       if (error || !data) {
-        console.log('⚠️ No se encontró configuración de versión, permitiendo acceso');
+        console.log('⚠️ No se encontró configuración de versión o timeout, permitiendo acceso');
         setIsVersionValid(true);
         setIsChecking(false);
         return;
@@ -81,16 +93,20 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
       setIsVersionValid(true);
       setIsChecking(false);
     }
-  };
+  }, [currentVersion]);
 
   useEffect(() => {
-    checkVersion();
-  }, []);
+    const timer = setTimeout(() => {
+      checkVersion();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [checkVersion]);
 
   const recheckVersion = useCallback(() => {
     setIsChecking(true);
     checkVersion();
-  }, []);
+  }, [checkVersion]);
 
   return useMemo(() => ({
     isVersionValid,

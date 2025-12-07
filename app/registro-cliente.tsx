@@ -223,18 +223,16 @@ export default function RegistroCliente() {
 
       console.log('✅ Documento creado exitosamente. Iniciando login...');
       
+      setIsRegistering(false);
+
       try {
-        await login(newCliente, { email, password, type: 'cliente' });
-        console.log('✅ Login completado exitosamente');
+        login(newCliente, { email, password, type: 'cliente' }).catch(err => {
+          console.error('⚠️ Error async en login:', err);
+        });
+        console.log('✅ Login iniciado');
       } catch (loginError: any) {
         console.error('❌ Error en login:', loginError);
-        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
-        setIsRegistering(false);
-        router.replace('/');
-        return;
       }
-      
-      setIsRegistering(false);
       
       if (isBiometricAvailable && !isBiometricEnabled) {
         offerBiometricSetup();
