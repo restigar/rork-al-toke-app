@@ -26,7 +26,6 @@ export default function OfertasActivas() {
   };
 
   const ofertasActivas = ofertas.filter(isOfertaActiva);
-  const ofertasExpiradas = ofertas.filter(o => !isOfertaActiva(o));
 
   const handleEdit = (oferta: any) => {
     router.push({
@@ -125,50 +124,6 @@ export default function OfertasActivas() {
             ))
           )}
         </View>
-
-        {ofertasExpiradas.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: '#9ca3af' }]}>
-                Ofertas Expiradas
-              </Text>
-              <View style={[styles.badge, { backgroundColor: '#f3f4f6' }]}>
-                <Text style={[styles.badgeText, { color: '#6b7280' }]}>
-                  {ofertasExpiradas.length}
-                </Text>
-              </View>
-            </View>
-
-            {ofertasExpiradas.map((oferta) => (
-              <View key={oferta.id} style={[styles.ofertaCard, styles.expiredCard]}>
-                <View style={[styles.statusBadge, { backgroundColor: '#f3f4f6' }]}>
-                  <Text style={[styles.statusText, { color: '#6b7280' }]}>EXPIRADA</Text>
-                </View>
-                
-                <Text style={[styles.ofertaTitulo, { color: '#9ca3af' }]}>{oferta.titulo}</Text>
-                <Text style={[styles.ofertaDescripcion, { color: '#d1d5db' }]}>
-                  {oferta.descripcion}
-                </Text>
-                
-                <View style={styles.ofertaFooter}>
-                  <View style={styles.priceContainer}>
-                    <DollarSign size={20} color="#9ca3af" />
-                    <Text style={[styles.ofertaPrecio, { color: '#9ca3af' }]}>
-                      ${oferta.precio}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.dateContainer}>
-                    <Calendar size={16} color="#9ca3af" />
-                    <Text style={[styles.dateText, { color: '#9ca3af' }]}>
-                      Expiró {new Date(oferta.vigenciaFin).toLocaleDateString('es-AR')}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
       </View>
     </ScrollView>
   );

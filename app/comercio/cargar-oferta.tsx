@@ -85,11 +85,11 @@ export default function CargarOferta() {
     console.log('Fecha fin:', vigenciaFin.toLocaleDateString('es-AR'));
     console.log('Horario fin:', horarioFin);
 
-    const fechaInicioConHorario = new Date(vigenciaInicio);
+    const fechaInicioConHorario = new Date(vigenciaInicio.getFullYear(), vigenciaInicio.getMonth(), vigenciaInicio.getDate());
     const [horasInicio, minutosInicio] = horarioInicio.split(':').map(Number);
     fechaInicioConHorario.setHours(horasInicio, minutosInicio, 0, 0);
 
-    const fechaFinConHorario = new Date(vigenciaFin);
+    const fechaFinConHorario = new Date(vigenciaFin.getFullYear(), vigenciaFin.getMonth(), vigenciaFin.getDate());
     const [horasFin, minutosFin] = horarioFin.split(':').map(Number);
     fechaFinConHorario.setHours(horasFin, minutosFin, 59, 999);
 
@@ -108,6 +108,9 @@ export default function CargarOferta() {
     console.log('✅ Oferta guardada:', oferta);
     console.log('ISO Inicio:', oferta.vigenciaInicio);
     console.log('ISO Fin:', oferta.vigenciaFin);
+    console.log('🔍 Verificación inmediata:');
+    console.log('Fecha actual:', new Date().toISOString());
+    console.log('Es activa ahora?', new Date() >= new Date(oferta.vigenciaInicio) && new Date() <= new Date(oferta.vigenciaFin));
 
     await saveOferta(oferta);
     

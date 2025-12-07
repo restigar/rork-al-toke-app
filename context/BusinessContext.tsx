@@ -49,6 +49,30 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
     loadData();
   }, [loadData]);
 
+  const limpiarOfertasExpiradas = useCallback(async () => {
+    const now = new Date();
+    const ofertasValidas = ofertas.filter(o => {
+      const finDate = new Date(o.vigenciaFin);
+      return finDate > now;
+    });
+
+    if (ofertasValidas.length !== ofertas.length) {
+      console.log(`🗑️ Limpiando ${ofertas.length - ofertasValidas.length} ofertas expiradas`);
+      setOfertas(ofertasValidas);
+      await AsyncStorage.setItem(OFERTAS_KEY, JSON.stringify(ofertasValidas));
+    }
+  }, [ofertas]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      limpiarOfertasExpiradas();
+    }, 60000);
+
+    limpiarOfertasExpiradas();
+
+    return () => clearInterval(interval);
+  }, [limpiarOfertasExpiradas]);
+
   const saveComercio = useCallback(async (comercio: Comercio) => {
     const existingIndex = comercios.findIndex(c => c.id === comercio.id);
     let updated: Comercio[];
@@ -173,5 +197,6 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
     getOfertasDiaByCliente,
     getOfertasDiaActivas,
     canClienteAddOfertaDia,
-  }), [comercios, ofertas, ofertasDia, saveComercio, getComercio, saveOferta, deleteOferta, getOfertasByComercio, getOfertasActivas, getNextClienteNumber, getNextComercioNumber, saveOfertaDia, getOfertasDiaByCliente, getOfertasDiaActivas, canClienteAddOfertaDia]);
+    limpiarOfertasExpiradas,
+  }), [comercios, ofertas, ofertasDia, saveComercio, getComercio, saveOferta, deleteOferta, getOfertasByComercio, getOfertasActivas, getNextClienteNumber, getNextComercioNumber, saveOfertaDia, getOfertasDiaByCliente, getOfertasDiaActivas, canClienteAddOfertaDia, limpiarOfertasExpiradas]);
 });
