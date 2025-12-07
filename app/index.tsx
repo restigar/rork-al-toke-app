@@ -19,6 +19,9 @@ import LocationPermissionModal from '../components/LocationPermissionModal';
 import { useBusiness } from '../context/BusinessContext';
 import { trpc } from '@/lib/trpc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
+import { getDocument } from '../lib/firebase-firestore';
+import type { Cliente, Comercio } from '../types';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
 
@@ -58,6 +61,68 @@ export default function LandingPage() {
         },
       ]
     );
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { user: firebaseUser, error: authError } = await signInWithGoogle();
+      
+      if (authError || !firebaseUser) {
+        Alert.alert(t('error'), authError || 'Error al iniciar sesión con Google');
+        return;
+      }
+
+      const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
+      if (clienteData) {
+        await login(clienteData as Cliente);
+        setShowLoginModal(false);
+        router.replace('/cliente/perfil');
+        return;
+      }
+
+      const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
+      if (comercioData) {
+        await login(comercioData as Comercio);
+        setShowLoginModal(false);
+        router.replace('/comercio/dashboard');
+        return;
+      }
+
+      Alert.alert(t('error'), 'No se encontró una cuenta asociada. Por favor regístrate primero.');
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message || 'Error al iniciar sesión con Google');
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      const { user: firebaseUser, error: authError } = await signInWithApple();
+      
+      if (authError || !firebaseUser) {
+        Alert.alert(t('error'), authError || 'Error al iniciar sesión con Apple');
+        return;
+      }
+
+      const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
+      if (clienteData) {
+        await login(clienteData as Cliente);
+        setShowLoginModal(false);
+        router.replace('/cliente/perfil');
+        return;
+      }
+
+      const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
+      if (comercioData) {
+        await login(comercioData as Comercio);
+        setShowLoginModal(false);
+        router.replace('/comercio/dashboard');
+        return;
+      }
+
+      Alert.alert(t('error'), 'No se encontró una cuenta asociada. Por favor regístrate primero.');
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message || 'Error al iniciar sesión con Apple');
+    }
   };
 
   const handleLogin = async () => {
@@ -286,21 +351,21 @@ export default function LandingPage() {
               </View>
 
               <View style={styles.socialButtons}>
-                <TouchableOpacity style={styles.socialButton}>
+                <TouchableOpacity 
+                  style={styles.socialButton}
+                  onPress={handleGoogleLogin}
+                >
                   <Image
                     source={{ uri: 'https://www.google.com/favicon.ico' }}
                     style={styles.socialIcon}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton}>
+                <TouchableOpacity 
+                  style={styles.socialButton}
+                  onPress={handleAppleLogin}
+                >
                   <Image
                     source={{ uri: 'https://www.apple.com/favicon.ico' }}
-                    style={styles.socialIcon}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton}>
-                  <Image
-                    source={{ uri: 'https://www.facebook.com/favicon.ico' }}
                     style={styles.socialIcon}
                   />
                 </TouchableOpacity>

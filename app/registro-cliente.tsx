@@ -5,8 +5,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
 import type { Cliente } from '../types';
-import { signUp } from '../lib/firebase-auth';
-import { createDocument } from '../lib/firebase-firestore';
+import { signUp, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
+import { createDocument, getDocument } from '../lib/firebase-firestore';
 
 export default function RegistroCliente() {
   const router = useRouter();
@@ -46,6 +46,96 @@ export default function RegistroCliente() {
         },
       ]
     );
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsRegistering(true);
+    try {
+      const { user: firebaseUser, error: authError } = await signInWithGoogle();
+      
+      if (authError || !firebaseUser) {
+        Alert.alert('Error', authError || 'Error al iniciar sesión con Google');
+        setIsRegistering(false);
+        return;
+      }
+
+      const { data: existingCliente } = await getDocument('clientes', firebaseUser.uid);
+      
+      if (existingCliente) {
+        await login(existingCliente as Cliente);
+        setIsRegistering(false);
+        router.replace('/cliente/perfil');
+        return;
+      }
+
+      const clienteNumber = await getNextClienteNumber();
+      const numeroCliente = `${clienteNumber}`;
+      
+      const newCliente: Cliente = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'Usuario',
+        email: firebaseUser.email || '',
+        type: 'cliente',
+        numeroCliente,
+        fotoPerfil: firebaseUser.photoURL || undefined,
+      };
+
+      await createDocument('clientes', firebaseUser.uid, newCliente);
+      await login(newCliente);
+      
+      setIsRegistering(false);
+      Alert.alert('Éxito', '¡Registro completado con Google!', [
+        { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
+      ]);
+    } catch (error: any) {
+      setIsRegistering(false);
+      Alert.alert('Error', error.message || 'Error al registrar con Google');
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setIsRegistering(true);
+    try {
+      const { user: firebaseUser, error: authError } = await signInWithApple();
+      
+      if (authError || !firebaseUser) {
+        Alert.alert('Error', authError || 'Error al iniciar sesión con Apple');
+        setIsRegistering(false);
+        return;
+      }
+
+      const { data: existingCliente } = await getDocument('clientes', firebaseUser.uid);
+      
+      if (existingCliente) {
+        await login(existingCliente as Cliente);
+        setIsRegistering(false);
+        router.replace('/cliente/perfil');
+        return;
+      }
+
+      const clienteNumber = await getNextClienteNumber();
+      const numeroCliente = `${clienteNumber}`;
+      
+      const newCliente: Cliente = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'Usuario',
+        email: firebaseUser.email || '',
+        type: 'cliente',
+        numeroCliente,
+        fotoPerfil: firebaseUser.photoURL || undefined,
+      };
+
+      await createDocument('clientes', firebaseUser.uid, newCliente);
+      await login(newCliente);
+      
+      setIsRegistering(false);
+      Alert.alert('Éxito', '¡Registro completado con Apple!', [
+        { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
+      ]);
+    } catch (error: any) {
+      setIsRegistering(false);
+      Alert.alert('Error', error.message || 'Error al registrar con Apple');
+    }
   };
 
   const handleRegister = async () => {
@@ -205,21 +295,23 @@ export default function RegistroCliente() {
           </View>
 
           <View style={styles.socialButtons}>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={handleGoogleSignIn}
+              disabled={isRegistering}
+            >
               <Image
                 source={{ uri: 'https://www.google.com/favicon.ico' }}
                 style={styles.socialIcon}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={handleAppleSignIn}
+              disabled={isRegistering}
+            >
               <Image
                 source={{ uri: 'https://www.apple.com/favicon.ico' }}
-                style={styles.socialIcon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
-              <Image
-                source={{ uri: 'https://www.facebook.com/favicon.ico' }}
                 style={styles.socialIcon}
               />
             </TouchableOpacity>

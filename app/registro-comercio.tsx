@@ -5,8 +5,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
 import type { Comercio } from '../types';
-import { signUp } from '../lib/firebase-auth';
-import { createDocument } from '../lib/firebase-firestore';
+import { signUp, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
+import { createDocument, getDocument } from '../lib/firebase-firestore';
 
 export default function RegistroComercio() {
   const router = useRouter();
@@ -46,6 +46,102 @@ export default function RegistroComercio() {
         },
       ]
     );
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsRegistering(true);
+    try {
+      const { user: firebaseUser, error: authError } = await signInWithGoogle();
+      
+      if (authError || !firebaseUser) {
+        Alert.alert('Error', authError || 'Error al iniciar sesión con Google');
+        setIsRegistering(false);
+        return;
+      }
+
+      const { data: existingComercio } = await getDocument('comercios', firebaseUser.uid);
+      
+      if (existingComercio) {
+        await saveComercio(existingComercio as Comercio);
+        await login(existingComercio as Comercio);
+        setIsRegistering(false);
+        router.replace('/comercio/dashboard');
+        return;
+      }
+
+      const comercioNumber = await getNextComercioNumber();
+      const numeroComercio = `${comercioNumber}`;
+      
+      const newComercio: Comercio = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'Comercio',
+        nombre: firebaseUser.displayName || 'Comercio',
+        email: firebaseUser.email || '',
+        type: 'comercio',
+        numeroComercio,
+        fotoPerfil: firebaseUser.photoURL || undefined,
+      };
+
+      await createDocument('comercios', firebaseUser.uid, newComercio);
+      await saveComercio(newComercio);
+      await login(newComercio);
+      
+      setIsRegistering(false);
+      Alert.alert('Éxito', '¡Registro completado con Google!', [
+        { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
+      ]);
+    } catch (error: any) {
+      setIsRegistering(false);
+      Alert.alert('Error', error.message || 'Error al registrar con Google');
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setIsRegistering(true);
+    try {
+      const { user: firebaseUser, error: authError } = await signInWithApple();
+      
+      if (authError || !firebaseUser) {
+        Alert.alert('Error', authError || 'Error al iniciar sesión con Apple');
+        setIsRegistering(false);
+        return;
+      }
+
+      const { data: existingComercio } = await getDocument('comercios', firebaseUser.uid);
+      
+      if (existingComercio) {
+        await saveComercio(existingComercio as Comercio);
+        await login(existingComercio as Comercio);
+        setIsRegistering(false);
+        router.replace('/comercio/dashboard');
+        return;
+      }
+
+      const comercioNumber = await getNextComercioNumber();
+      const numeroComercio = `${comercioNumber}`;
+      
+      const newComercio: Comercio = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'Comercio',
+        nombre: firebaseUser.displayName || 'Comercio',
+        email: firebaseUser.email || '',
+        type: 'comercio',
+        numeroComercio,
+        fotoPerfil: firebaseUser.photoURL || undefined,
+      };
+
+      await createDocument('comercios', firebaseUser.uid, newComercio);
+      await saveComercio(newComercio);
+      await login(newComercio);
+      
+      setIsRegistering(false);
+      Alert.alert('Éxito', '¡Registro completado con Apple!', [
+        { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
+      ]);
+    } catch (error: any) {
+      setIsRegistering(false);
+      Alert.alert('Error', error.message || 'Error al registrar con Apple');
+    }
   };
 
   const handleRegister = async () => {
@@ -207,21 +303,23 @@ export default function RegistroComercio() {
           </View>
 
           <View style={styles.socialButtons}>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={handleGoogleSignIn}
+              disabled={isRegistering}
+            >
               <Image
                 source={{ uri: 'https://www.google.com/favicon.ico' }}
                 style={styles.socialIcon}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={handleAppleSignIn}
+              disabled={isRegistering}
+            >
               <Image
                 source={{ uri: 'https://www.apple.com/favicon.ico' }}
-                style={styles.socialIcon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
-              <Image
-                source={{ uri: 'https://www.facebook.com/favicon.ico' }}
                 style={styles.socialIcon}
               />
             </TouchableOpacity>
