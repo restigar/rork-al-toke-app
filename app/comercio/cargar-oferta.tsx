@@ -53,6 +53,46 @@ export default function CargarOferta() {
       return;
     }
 
+    const getHorarioForDate = (date: Date, isInicio: boolean) => {
+      if (!comercio?.horarios || comercio.horarios.length === 0) {
+        return isInicio ? '00:00' : '23:59';
+      }
+
+      const diaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][date.getDay()];
+      const horarioDelDia = comercio.horarios.find(h => h.dia === diaNombre);
+
+      if (!horarioDelDia || !horarioDelDia.abierto) {
+        return isInicio ? '00:00' : '23:59';
+      }
+
+      if (isInicio) {
+        return horarioDelDia.manana?.inicio || '00:00';
+      } else {
+        if (horarioDelDia.horarioCorrido) {
+          return horarioDelDia.manana?.fin || '23:59';
+        } else {
+          return horarioDelDia.tarde?.fin || horarioDelDia.manana?.fin || '23:59';
+        }
+      }
+    };
+
+    const horarioInicio = getHorarioForDate(vigenciaInicio, true);
+    const horarioFin = getHorarioForDate(vigenciaFin, false);
+
+    console.log('📅 Configurando oferta con horarios:');
+    console.log('Fecha inicio:', vigenciaInicio.toLocaleDateString('es-AR'));
+    console.log('Horario inicio:', horarioInicio);
+    console.log('Fecha fin:', vigenciaFin.toLocaleDateString('es-AR'));
+    console.log('Horario fin:', horarioFin);
+
+    const fechaInicioConHorario = new Date(vigenciaInicio);
+    const [horasInicio, minutosInicio] = horarioInicio.split(':').map(Number);
+    fechaInicioConHorario.setHours(horasInicio, minutosInicio, 0, 0);
+
+    const fechaFinConHorario = new Date(vigenciaFin);
+    const [horasFin, minutosFin] = horarioFin.split(':').map(Number);
+    fechaFinConHorario.setHours(horasFin, minutosFin, 59, 999);
+
     const oferta: Oferta = {
       id: isEditMode ? ofertaId : Date.now().toString(),
       comercioId: user?.id || '',
@@ -60,16 +100,24 @@ export default function CargarOferta() {
       titulo,
       descripcion,
       precio: precioNumero,
-      vigenciaInicio: vigenciaInicio.toISOString(),
-      vigenciaFin: vigenciaFin.toISOString(),
+      vigenciaInicio: fechaInicioConHorario.toISOString(),
+      vigenciaFin: fechaFinConHorario.toISOString(),
       imagenUrl,
     };
 
+    console.log('✅ Oferta guardada:', oferta);
+    console.log('ISO Inicio:', oferta.vigenciaInicio);
+    console.log('ISO Fin:', oferta.vigenciaFin);
+
     await saveOferta(oferta);
     
-    Alert.alert('Éxito', isEditMode ? 'Oferta actualizada correctamente' : 'Oferta publicada correctamente', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    Alert.alert(
+      'Éxito', 
+      `${isEditMode ? 'Oferta actualizada' : 'Oferta publicada'} correctamente\n\nVigencia:\nDesde: ${fechaInicioConHorario.toLocaleString('es-AR')}\nHasta: ${fechaFinConHorario.toLocaleString('es-AR')}`,
+      [
+        { text: 'OK', onPress: () => router.back() },
+      ]
+    );
   };
 
   const handleChangeInicio = (event: any, selectedDate?: Date) => {
@@ -246,9 +294,14 @@ export default function CargarOferta() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.note}>
-            <Text style={styles.noteText}>
-              💡 Tip: Las ofertas se mostrarán automáticamente a clientes que busquen en tu área
+          <View style={styles.infoNote}>
+            <Text style={styles.infoNoteTitle}>🕒 Vigencia de la Oferta</Text>
+            <Text style={styles.infoNoteText}>
+              La oferta iniciará en la fecha seleccionada al horario de apertura de tu comercio ese día, 
+y finalizará en la fecha de fin al horario de cierre.
+            </Text>
+            <Text style={styles.infoNoteText}>
+              💡 Las ofertas se mostrarán automáticamente a clientes que busquen en tu área durante este período.
             </Text>
           </View>
 
@@ -339,16 +392,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  note: {
-    backgroundColor: '#fef3c7',
+  infoNote: {
+    backgroundColor: '#eff6ff',
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
   },
-  noteText: {
-    fontSize: 14,
-    color: '#92400e',
-    lineHeight: 20,
+  infoNoteTitle: {
+    fontSize: 15,
+    fontWeight: 'bold' as const,
+    color: '#1e40af',
+    marginBottom: 8,
+  },
+  infoNoteText: {
+    fontSize: 13,
+    color: '#1e3a8a',
+    lineHeight: 18,
+    marginBottom: 6,
   },
   buttonGroup: {
     flexDirection: 'row',

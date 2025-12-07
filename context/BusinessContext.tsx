@@ -95,16 +95,18 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
 
   const getOfertasActivas = useCallback((): Oferta[] => {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     return ofertas.filter(o => {
       const inicioDate = new Date(o.vigenciaInicio);
-      const inicio = new Date(inicioDate.getFullYear(), inicioDate.getMonth(), inicioDate.getDate());
-      
       const finDate = new Date(o.vigenciaFin);
-      const fin = new Date(finDate.getFullYear(), finDate.getMonth(), finDate.getDate());
       
-      return todayStart >= inicio && todayStart <= fin;
+      console.log('🔍 Validando oferta:', o.titulo);
+      console.log('⏰ Ahora:', now.toLocaleString('es-AR'));
+      console.log('📅 Inicio:', inicioDate.toLocaleString('es-AR'));
+      console.log('📅 Fin:', finDate.toLocaleString('es-AR'));
+      console.log('✅ Activa:', now >= inicioDate && now <= finDate);
+      
+      return now >= inicioDate && now <= finDate;
     });
   }, [ofertas]);
 

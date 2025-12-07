@@ -13,21 +13,16 @@ export default function OfertasActivas() {
 
   const isOfertaActiva = (oferta: any) => {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
     const inicioDate = new Date(oferta.vigenciaInicio);
-    const inicio = new Date(inicioDate.getFullYear(), inicioDate.getMonth(), inicioDate.getDate());
-    
     const finDate = new Date(oferta.vigenciaFin);
-    const fin = new Date(finDate.getFullYear(), finDate.getMonth(), finDate.getDate());
     
     console.log('🔍 Verificando oferta:', oferta.titulo);
-    console.log('📅 Fecha actual:', todayStart.toLocaleDateString('es-AR'));
-    console.log('📅 Fecha inicio:', inicio.toLocaleDateString('es-AR'));
-    console.log('📅 Fecha fin:', fin.toLocaleDateString('es-AR'));
-    console.log('✅ Activa:', todayStart >= inicio && todayStart <= fin);
+    console.log('⏰ Ahora:', now.toLocaleString('es-AR'));
+    console.log('📅 Inicio:', inicioDate.toLocaleString('es-AR'));
+    console.log('📅 Fin:', finDate.toLocaleString('es-AR'));
+    console.log('✅ Activa:', now >= inicioDate && now <= finDate);
     
-    return todayStart >= inicio && todayStart <= fin;
+    return now >= inicioDate && now <= finDate;
   };
 
   const ofertasActivas = ofertas.filter(isOfertaActiva);
@@ -104,7 +99,7 @@ export default function OfertasActivas() {
                   <View style={styles.dateContainer}>
                     <Calendar size={16} color="#6b7280" />
                     <Text style={styles.dateText}>
-                      Hasta {new Date(oferta.vigenciaFin).toLocaleDateString('es-AR')}
+                      {new Date(oferta.vigenciaInicio).toLocaleDateString('es-AR')} - {new Date(oferta.vigenciaFin).toLocaleDateString('es-AR')}
                     </Text>
                   </View>
                 </View>
