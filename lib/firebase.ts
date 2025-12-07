@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore, enableNetwork } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
@@ -21,29 +21,22 @@ let storage: FirebaseStorage;
 
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
+  console.log('✅ Firebase App inicializado');
   
-  try {
-    if (Platform.OS === 'web') {
-      db = initializeFirestore(app, {
-        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-        experimentalForceLongPolling: true,
-      });
-    } else {
-      db = getFirestore(app);
-    }
-    
-    enableNetwork(db).then(() => {
-      console.log('✅ Firestore conectado a la red');
-    }).catch((error) => {
-      console.error('❌ Error al conectar Firestore a la red:', error);
+  if (Platform.OS === 'web') {
+    db = initializeFirestore(app, {
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+      experimentalForceLongPolling: true,
     });
-  } catch (error) {
-    console.warn('⚠️ Error inicializando Firestore, usando configuración por defecto:', error);
-    db = getFirestore(app);
+  } else {
+    db = initializeFirestore(app, {
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    });
   }
   
   auth = getAuth(app);
   storage = getStorage(app);
+  console.log('✅ Firebase servicios inicializados (Auth, Firestore, Storage)');
 } else {
   app = getApp();
   db = getFirestore(app);
