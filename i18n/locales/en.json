@@ -34,5 +34,10 @@
   "noCredentials": "No saved credentials for biometric authentication",
   "loginError": "Could not sign in. Please try again.",
   "searchOffers": "Search Offers",
-  "searchBusinesses": "Search Businesses"
+  "searchBusinesses": "Search Businesses",
+  "updateRequired": "Update Required",
+  "currentVersion": "Current Version",
+  "requiredVersion": "Required Version",
+  "updateNow": "Update Now",
+  "updateFooter": "You need to update the app to continue using it"
 }

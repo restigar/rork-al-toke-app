@@ -34,5 +34,10 @@
   "noCredentials": "No hay credenciales guardadas para autenticación biométrica",
   "loginError": "No se pudo iniciar sesión. Por favor intenta de nuevo.",
   "searchOffers": "Buscar Ofertas",
-  "searchBusinesses": "Buscar Comercios"
+  "searchBusinesses": "Buscar Comercios",
+  "updateRequired": "Actualización Requerida",
+  "currentVersion": "Versión Actual",
+  "requiredVersion": "Versión Requerida",
+  "updateNow": "Actualizar Ahora",
+  "updateFooter": "Necesitas actualizar la app para continuar usándola"
 }

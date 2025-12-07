@@ -34,5 +34,10 @@
   "noCredentials": "Não há credenciais salvas para autenticação biométrica",
   "loginError": "Não foi possível fazer login. Por favor, tente novamente.",
   "searchOffers": "Buscar Ofertas",
-  "searchBusinesses": "Buscar Comércios"
+  "searchBusinesses": "Buscar Comércios",
+  "updateRequired": "Atualização Necessária",
+  "currentVersion": "Versão Atual",
+  "requiredVersion": "Versão Necessária",
+  "updateNow": "Atualizar Agora",
+  "updateFooter": "Você precisa atualizar o app para continuar usando"
 }

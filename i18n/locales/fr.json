@@ -34,5 +34,10 @@
   "noCredentials": "Aucune information d'identification enregistrée pour l'authentification biométrique",
   "loginError": "Impossible de se connecter. Veuillez réessayer.",
   "searchOffers": "Rechercher des Offres",
-  "searchBusinesses": "Rechercher des Commerces"
+  "searchBusinesses": "Rechercher des Commerces",
+  "updateRequired": "Mise à jour requise",
+  "currentVersion": "Version Actuelle",
+  "requiredVersion": "Version Requise",
+  "updateNow": "Mettre à jour",
+  "updateFooter": "Vous devez mettre à jour l'application pour continuer à l'utiliser"
 }

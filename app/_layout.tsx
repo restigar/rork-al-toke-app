@@ -6,7 +6,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "../context/AuthContext";
 import { BusinessProvider } from "../context/BusinessContext";
 import { LanguageProvider } from "../context/LanguageContext";
+import { VersionProvider } from "../context/VersionContext";
 import { trpc, trpcClient } from "@/lib/trpc";
+import ForceUpdateModal from "../components/ForceUpdateModal";
 import '../i18n';
 
 SplashScreen.preventAutoHideAsync();
@@ -38,13 +40,16 @@ export default function RootLayout() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
-          <AuthProvider>
-            <BusinessProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <RootLayoutNav />
-              </GestureHandlerRootView>
-            </BusinessProvider>
-          </AuthProvider>
+          <VersionProvider>
+            <AuthProvider>
+              <BusinessProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <RootLayoutNav />
+                  <ForceUpdateModal />
+                </GestureHandlerRootView>
+              </BusinessProvider>
+            </AuthProvider>
+          </VersionProvider>
         </LanguageProvider>
       </QueryClientProvider>
     </trpc.Provider>
