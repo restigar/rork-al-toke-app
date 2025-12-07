@@ -157,6 +157,7 @@ export default function RegistroCliente() {
     setIsRegistering(true);
 
     try {
+      console.log('📝 Iniciando registro de cliente...');
       const name = `${firstName} ${lastName}`;
       
       const { user: firebaseUser, error: authError } = await signUp(email, password, name);
@@ -178,13 +179,19 @@ export default function RegistroCliente() {
         numeroCliente,
       };
 
-      const { error: firestoreError } = await createDocument('clientes', firebaseUser.uid, newCliente);
+      console.log('📝 Creando documento en Firestore para cliente:', firebaseUser.uid);
+      const { success: firestoreSuccess, error: firestoreError } = await createDocument('clientes', firebaseUser.uid, newCliente);
       
-      if (firestoreError) {
-        console.error('Error guardando datos del cliente:', firestoreError);
+      if (!firestoreSuccess || firestoreError) {
+        console.error('❌ Error guardando datos del cliente:', firestoreError);
+        Alert.alert('Error', `Error al guardar los datos del cliente: ${firestoreError || 'Error desconocido'}`);
+        setIsRegistering(false);
+        return;
       }
 
+      console.log('✅ Documento creado exitosamente. Iniciando login...');
       await login(newCliente, { email, password, type: 'cliente' });
+      console.log('✅ Login completado exitosamente');
       
       setIsRegistering(false);
       

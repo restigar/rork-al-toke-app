@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore, enableNetwork } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
@@ -31,8 +31,14 @@ if (!getApps().length) {
     } else {
       db = getFirestore(app);
     }
+    
+    enableNetwork(db).then(() => {
+      console.log('✅ Firestore conectado a la red');
+    }).catch((error) => {
+      console.error('❌ Error al conectar Firestore a la red:', error);
+    });
   } catch (error) {
-    console.warn('Error inicializando Firestore, usando configuración por defecto:', error);
+    console.warn('⚠️ Error inicializando Firestore, usando configuración por defecto:', error);
     db = getFirestore(app);
   }
   

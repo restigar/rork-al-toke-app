@@ -184,10 +184,13 @@ export default function RegistroComercio() {
         telefono,
       };
 
-      const { error: firestoreError } = await createDocument('comercios', firebaseUser.uid, newComercio);
+      const { success: firestoreSuccess, error: firestoreError } = await createDocument('comercios', firebaseUser.uid, newComercio);
       
-      if (firestoreError) {
+      if (!firestoreSuccess || firestoreError) {
         console.error('Error guardando datos del comercio:', firestoreError);
+        Alert.alert('Error', 'Error al guardar los datos del comercio. Por favor, intenta de nuevo.');
+        setIsRegistering(false);
+        return;
       }
 
       await saveComercio(newComercio);
