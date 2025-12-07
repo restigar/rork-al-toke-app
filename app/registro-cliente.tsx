@@ -223,23 +223,23 @@ export default function RegistroCliente() {
 
       console.log('✅ Documento creado exitosamente. Iniciando login...');
       
-      setIsRegistering(false);
-
       try {
-        login(newCliente, { email, password, type: 'cliente' }).catch(err => {
-          console.error('⚠️ Error async en login:', err);
-        });
-        console.log('✅ Login iniciado');
+        await login(newCliente, { email, password, type: 'cliente' });
+        console.log('✅ Login completado exitosamente');
+        
+        setIsRegistering(false);
+        
+        if (isBiometricAvailable && !isBiometricEnabled) {
+          offerBiometricSetup();
+        } else {
+          Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
+            { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
+          ]);
+        }
       } catch (loginError: any) {
         console.error('❌ Error en login:', loginError);
-      }
-      
-      if (isBiometricAvailable && !isBiometricEnabled) {
-        offerBiometricSetup();
-      } else {
-        Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
-          { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
-        ]);
+        setIsRegistering(false);
+        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
       }
     } catch (error: any) {
       setIsRegistering(false);

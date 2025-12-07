@@ -227,26 +227,24 @@ export default function RegistroComercio() {
 
       console.log('✅ Documento creado exitosamente. Iniciando login...');
       
-      setIsRegistering(false);
-
       try {
-        saveComercio(newComercio).catch(err => {
-          console.error('⚠️ Error async guardando comercio:', err);
-        });
-        login(newComercio, { email, password, type: 'comercio' }).catch(err => {
-          console.error('⚠️ Error async en login:', err);
-        });
-        console.log('✅ Login iniciado');
+        await saveComercio(newComercio);
+        await login(newComercio, { email, password, type: 'comercio' });
+        console.log('✅ Login completado exitosamente');
+        
+        setIsRegistering(false);
+        
+        if (isBiometricAvailable && !isBiometricEnabled) {
+          offerBiometricSetup();
+        } else {
+          Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
+            { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
+          ]);
+        }
       } catch (loginError: any) {
         console.error('❌ Error en login:', loginError);
-      }
-      
-      if (isBiometricAvailable && !isBiometricEnabled) {
-        offerBiometricSetup();
-      } else {
-        Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
-          { text: 'OK', onPress: () => router.replace('/comercio/dashboard') },
-        ]);
+        setIsRegistering(false);
+        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
       }
     } catch (error: any) {
       setIsRegistering(false);
