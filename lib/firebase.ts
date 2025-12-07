@@ -1,7 +1,8 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: "AIzaSyClMWxxt3ssnScAYDaq6Dge0VrMIEzSyG0",
@@ -13,16 +14,36 @@ const firebaseConfig = {
   appId: "1:770675581016:web:2625d9bd7f471fc2a82a2d"
 };
 
-let app;
+let app: FirebaseApp;
+let db: Firestore;
+let auth: Auth;
+let storage: FirebaseStorage;
+
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
+  
+  try {
+    if (Platform.OS === 'web') {
+      db = initializeFirestore(app, {
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+        experimentalForceLongPolling: true,
+      });
+    } else {
+      db = getFirestore(app);
+    }
+  } catch (error) {
+    console.warn('Error inicializando Firestore, usando configuración por defecto:', error);
+    db = getFirestore(app);
+  }
+  
+  auth = getAuth(app);
+  storage = getStorage(app);
 } else {
   app = getApp();
+  db = getFirestore(app);
+  auth = getAuth(app);
+  storage = getStorage(app);
 }
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
 
 export { auth, db, storage };
 export default app;
