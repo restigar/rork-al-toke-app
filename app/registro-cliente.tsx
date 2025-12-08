@@ -227,11 +227,11 @@ export default function RegistroCliente() {
         await login(newCliente, { email, password, type: 'cliente' });
         console.log('✅ Login completado exitosamente');
         
-        setIsRegistering(false);
-        
         if (isBiometricAvailable && !isBiometricEnabled) {
+          setIsRegistering(false);
           offerBiometricSetup();
         } else {
+          setIsRegistering(false);
           Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
             { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
           ]);

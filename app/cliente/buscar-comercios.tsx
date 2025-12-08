@@ -221,7 +221,8 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
     if (comerciosConUbicacion.length === 1) {
       const comercio = comerciosConUbicacion[0];
       const { latitud, longitud } = comercio.ubicacion!;
-      const url = `https://www.google.com/maps/search/?api=1&query=${latitud},${longitud}`;
+      const nombreEncoded = encodeURIComponent(comercio.nombre);
+      const url = `https://www.google.com/maps/search/?api=1&query=${nombreEncoded}+${latitud},${longitud}`;
       Linking.openURL(url);
       return;
     }
@@ -231,13 +232,15 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
 
     const markers = comerciosConUbicacion
       .map((c, index) => {
-        return `&markers=color:red%7Clabel:${index + 1}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
+        const inicial = (index + 1).toString();
+        return `&markers=color:red%7Clabel:${inicial}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
       })
       .join('');
 
-    const url = `https://www.google.com/maps?center=${centerLat},${centerLng}&zoom=14${markers}`;
+    const url = `https://www.google.com/maps/@${centerLat},${centerLng},14z${markers}`;
     
     console.log('Abriendo mapa con todos los comercios:', url);
+    console.log('Comercios en el mapa:', comerciosConUbicacion.map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
     Linking.openURL(url);
   };
 
