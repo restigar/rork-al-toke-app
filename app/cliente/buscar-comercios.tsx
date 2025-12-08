@@ -210,11 +210,19 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
   };
 
   const abrirMapaTodosLosComerciosTodos = () => {
-    if (resultados.length === 0) return;
+    console.log('🗺️ Intentando abrir mapa con todos los comercios');
+    console.log('📊 Total de resultados:', resultados.length);
+    
+    if (resultados.length === 0) {
+      console.log('❌ No hay resultados para mostrar en el mapa');
+      return;
+    }
 
     const comerciosConUbicacion = resultados.filter(c => c.ubicacion);
+    console.log('📍 Comercios con ubicación:', comerciosConUbicacion.length);
+    
     if (comerciosConUbicacion.length === 0) {
-      console.log('No hay comercios con ubicación');
+      console.log('❌ No hay comercios con ubicación válida');
       return;
     }
 
@@ -223,6 +231,7 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
       const { latitud, longitud } = comercio.ubicacion!;
       const nombreEncoded = encodeURIComponent(comercio.nombre);
       const url = `https://www.google.com/maps/search/?api=1&query=${nombreEncoded}+${latitud},${longitud}`;
+      console.log('✅ Abriendo mapa con 1 comercio:', comercio.nombre);
       Linking.openURL(url);
       return;
     }
@@ -231,17 +240,21 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
     const centerLng = comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.longitud, 0) / comerciosConUbicacion.length;
 
     const markers = comerciosConUbicacion
-      .map((c, index) => {
-        const inicial = (index + 1).toString();
-        return `&markers=color:red%7Clabel:${inicial}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
+      .map((c) => {
+        const nombreEncoded = encodeURIComponent(c.nombre.substring(0, 20));
+        return `&markers=color:red%7Clabel:${nombreEncoded}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
       })
       .join('');
 
-    const url = `https://www.google.com/maps/@${centerLat},${centerLng},14z${markers}`;
+    const url = `https://www.google.com/maps/search/?api=1&query=${centerLat},${centerLng}${markers}`;
     
-    console.log('Abriendo mapa con todos los comercios:', url);
-    console.log('Comercios en el mapa:', comerciosConUbicacion.map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
-    Linking.openURL(url);
+    console.log('✅ Abriendo mapa con múltiples comercios:', comerciosConUbicacion.length);
+    console.log('📍 Comercios en el mapa:', comerciosConUbicacion.map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
+    console.log('🔗 URL del mapa:', url);
+    
+    Linking.openURL(url).catch(error => {
+      console.error('❌ Error al abrir el mapa:', error);
+    });
   };
 
   const abrirWhatsApp = (comercio: ComercioConDistancia) => {
