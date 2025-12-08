@@ -41,7 +41,6 @@ export default function BuscarComercios() {
   const [filtro, setFiltro] = useState<FiltroType>('todos');
   const [showOrdenMenu, setShowOrdenMenu] = useState<boolean>(false);
   const [showFiltroMenu, setShowFiltroMenu] = useState<boolean>(false);
-  const [showMap, setShowMap] = useState<boolean>(false);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -53,10 +52,12 @@ export default function BuscarComercios() {
     if (searchQuery) {
       buscarConIA();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, userLocation]);
 
   useEffect(() => {
     ordenarYFiltrarResultados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orden, filtro]);
 
   const loadUserLocation = async () => {
@@ -208,6 +209,38 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
     Linking.openURL(url);
   };
 
+  const abrirMapaTodosLosComerciosTodos = () => {
+    if (resultados.length === 0) return;
+
+    const comerciosConUbicacion = resultados.filter(c => c.ubicacion);
+    if (comerciosConUbicacion.length === 0) {
+      console.log('No hay comercios con ubicación');
+      return;
+    }
+
+    if (comerciosConUbicacion.length === 1) {
+      const comercio = comerciosConUbicacion[0];
+      const { latitud, longitud } = comercio.ubicacion!;
+      const url = `https://www.google.com/maps/search/?api=1&query=${latitud},${longitud}`;
+      Linking.openURL(url);
+      return;
+    }
+
+    const centerLat = comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.latitud, 0) / comerciosConUbicacion.length;
+    const centerLng = comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.longitud, 0) / comerciosConUbicacion.length;
+
+    const markers = comerciosConUbicacion
+      .map((c, index) => {
+        return `&markers=color:red%7Clabel:${index + 1}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
+      })
+      .join('');
+
+    const url = `https://www.google.com/maps?center=${centerLat},${centerLng}&zoom=14${markers}`;
+    
+    console.log('Abriendo mapa con todos los comercios:', url);
+    Linking.openURL(url);
+  };
+
   const abrirWhatsApp = (comercio: ComercioConDistancia) => {
     if (!comercio.telefono) return;
 
@@ -248,20 +281,14 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguno" si no
             <Text style={styles.controlButtonText}>Filtrar</Text>
           </TouchableOpacity>
 
-          {Platform.OS === 'web' ? (
-            <View style={styles.controlButtonDisabled}>
-              <MapIcon size={20} color="#d1d5db" />
-              <Text style={styles.controlButtonDisabledText}>Mapa (solo móvil)</Text>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={[styles.controlButton, showMap && styles.controlButtonActive]}
-              onPress={() => setShowMap(!showMap)}
-            >
-              <MapIcon size={20} color={showMap ? "#9dd9c1" : "#6b7280"} />
-              <Text style={[styles.controlButtonText, showMap && styles.controlButtonTextActive]}>Mapa</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={styles.controlButton}
+            onPress={abrirMapaTodosLosComerciosTodos}
+            disabled={resultados.length === 0}
+          >
+            <MapIcon size={20} color={resultados.length === 0 ? "#d1d5db" : "#6b7280"} />
+            <Text style={[styles.controlButtonText, resultados.length === 0 && { color: '#d1d5db' }]}>Mapa</Text>
+          </TouchableOpacity>
         </View>
 
         {showOrdenMenu && (
