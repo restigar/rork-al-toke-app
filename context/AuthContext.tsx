@@ -6,6 +6,8 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Alert, Platform } from 'react-native';
 import type { User } from '../types';
+import { subscribeToAuthChanges, getCurrentUser } from '../lib/firebase-auth';
+import { getDocument } from '../lib/firebase-firestore';
 
 const USER_STORAGE_KEY = '@altoke_user';
 const BIOMETRIC_ENABLED_KEY = '@altoke_biometric_enabled';
@@ -23,15 +25,42 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const loadUser = useCallback(async () => {
     try {
-      const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
-      if (userJson) {
-        setUser(JSON.parse(userJson));
+      console.log('🔍 Verificando sesión de Firebase...');
+      const firebaseUser = getCurrentUser();
+      
+      if (firebaseUser) {
+        console.log('✅ Sesión activa en Firebase:', firebaseUser.uid);
+        
+        const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
+        if (clienteData) {
+          console.log('✅ Datos de cliente encontrados en Firestore');
+          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(clienteData));
+          setUser(clienteData as User);
+        } else {
+          const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
+          if (comercioData) {
+            console.log('✅ Datos de comercio encontrados en Firestore');
+            await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(comercioData));
+            setUser(comercioData as User);
+          } else {
+            console.log('⚠️ Usuario de Firebase no tiene datos en Firestore');
+          }
+        }
+      } else {
+        console.log('ℹ️ No hay sesión activa en Firebase, verificando AsyncStorage...');
+        const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
+        if (userJson) {
+          console.log('✅ Datos de usuario encontrados en AsyncStorage');
+          setUser(JSON.parse(userJson));
+        } else {
+          console.log('ℹ️ No hay usuario guardado');
+        }
       }
       
       const biometricEnabled = await AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY);
       setIsBiometricEnabled(biometricEnabled === 'true');
     } catch (error) {
-      console.error('Error loading user:', error);
+      console.error('❌ Error loading user:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +73,38 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   useEffect(() => {
     checkBiometricAvailability();
   }, []);
+
+  useEffect(() => {
+    console.log('🔄 Configurando listener de autenticación de Firebase...');
+    const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+      if (firebaseUser && !user) {
+        console.log('🔔 Cambio de autenticación detectado:', firebaseUser.uid);
+        
+        const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
+        if (clienteData) {
+          console.log('✅ Auto-login con datos de cliente');
+          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(clienteData));
+          setUser(clienteData as User);
+          return;
+        }
+        
+        const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
+        if (comercioData) {
+          console.log('✅ Auto-login con datos de comercio');
+          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(comercioData));
+          setUser(comercioData as User);
+          return;
+        }
+      } else if (!firebaseUser && user) {
+        console.log('🔔 Sesión cerrada en Firebase');
+      }
+    });
+
+    return () => {
+      console.log('🔄 Desuscribiendo listener de Firebase');
+      unsubscribe();
+    };
+  }, [user]);
 
   const checkBiometricAvailability = async () => {
     if (Platform.OS === 'web') {
