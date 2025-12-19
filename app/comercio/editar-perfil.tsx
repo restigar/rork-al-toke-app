@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Eye, EyeOff, Mail, Fingerprint } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff, Mail, Fingerprint, Trash2 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 
 export default function EditarPerfilComercio() {
   const router = useRouter();
-  const { user, updateUser, isBiometricEnabled, isBiometricAvailable, enableBiometric, disableBiometric } = useAuth();
+  const { user, deleteAccount, isBiometricEnabled, isBiometricAvailable, enableBiometric, disableBiometric } = useAuth();
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -78,6 +78,24 @@ export default function EditarPerfilComercio() {
         Alert.alert('Error', 'No se pudo habilitar la autenticación biométrica');
       }
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Eliminar Cuenta',
+      '¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteAccount();
+            router.replace('/');
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -202,6 +220,14 @@ export default function EditarPerfilComercio() {
             </TouchableOpacity>
           </View>
         )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Zona Peligrosa</Text>
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+            <Trash2 size={20} color="#dc2626" />
+            <Text style={styles.deleteText}>Eliminar Cuenta</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -335,5 +361,20 @@ const styles = StyleSheet.create({
   },
   biometricButtonTextActive: {
     color: '#fff',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#dc2626',
+    gap: 8,
+  },
+  deleteText: {
+    color: '#dc2626',
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });
