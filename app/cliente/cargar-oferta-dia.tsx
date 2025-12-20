@@ -107,9 +107,14 @@ export default function CargarOfertaDia() {
   };
 
   const onChangeFecha = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       setFecha(selectedDate);
+      if (Platform.OS === 'ios') {
+        setShowDatePicker(false);
+      }
     }
   };
 
@@ -240,13 +245,24 @@ export default function CargarOfertaDia() {
               <Calendar size={20} color="#9dd9c1" />
             </TouchableOpacity>
             {showDatePicker && (
-              <DateTimePicker
-                value={fecha}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onChangeFecha}
-                minimumDate={new Date()}
-              />
+              <View style={Platform.OS === 'ios' ? styles.iosDatePickerContainer : undefined}>
+                <DateTimePicker
+                  value={fecha}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onChangeFecha}
+                  minimumDate={new Date()}
+                  style={Platform.OS === 'ios' ? styles.iosDatePicker : undefined}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.iosDatePickerDone}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={styles.iosDatePickerDoneText}>Listo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
             <Text style={styles.helperText}>
               Selecciona la fecha en la que quieres que aparezca tu oferta
@@ -482,5 +498,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#fff',
+  },
+  iosDatePickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  iosDatePicker: {
+    height: 180,
+  },
+  iosDatePickerDone: {
+    backgroundColor: '#9dd9c1',
+    padding: 12,
+    alignItems: 'center',
+  },
+  iosDatePickerDoneText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });
