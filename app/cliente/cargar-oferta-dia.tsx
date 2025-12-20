@@ -261,25 +261,32 @@ export default function CargarOfertaDia() {
               <Text style={styles.dateButtonText}>{formatearFecha(fecha)}</Text>
               <Calendar size={20} color="#9dd9c1" />
             </TouchableOpacity>
-            {showDatePicker && (
-              <View style={Platform.OS === 'ios' ? styles.iosDatePickerContainer : undefined}>
+            {showDatePicker && Platform.OS === 'ios' && (
+              <View style={styles.iosDatePickerContainer}>
                 <DateTimePicker
                   value={fecha}
                   mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  display="spinner"
                   onChange={onChangeFecha}
                   minimumDate={new Date()}
-                  style={Platform.OS === 'ios' ? styles.iosDatePicker : undefined}
+                  style={styles.iosDatePicker}
                 />
-                {Platform.OS === 'ios' && (
-                  <TouchableOpacity
-                    style={styles.iosDatePickerDone}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.iosDatePickerDoneText}>Listo</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={styles.iosDatePickerDone}
+                  onPress={() => setShowDatePicker(false)}
+                >
+                  <Text style={styles.iosDatePickerDoneText}>Listo</Text>
+                </TouchableOpacity>
               </View>
+            )}
+            {showDatePicker && Platform.OS === 'android' && (
+              <DateTimePicker
+                value={fecha}
+                mode="date"
+                display="default"
+                onChange={onChangeFecha}
+                minimumDate={new Date()}
+              />
             )}
             <Text style={styles.helperText}>
               Selecciona la fecha en la que quieres que aparezca tu oferta
@@ -533,12 +540,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     marginTop: 8,
+    marginBottom: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#d1d5db',
   },
   iosDatePicker: {
-    height: 180,
+    height: 200,
+    width: '100%',
   },
   iosDatePickerDone: {
     backgroundColor: '#9dd9c1',

@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as Location from 'expo-location';
@@ -51,6 +52,9 @@ export default function InformacionComercio() {
     }))
   );
   const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
+  const [showTipoPicker, setShowTipoPicker] = useState<boolean>(false);
+  const [showRubroPicker, setShowRubroPicker] = useState<boolean>(false);
+  const [showSubRubroPicker, setShowSubRubroPicker] = useState<boolean>(false);
 
   const getRubrosOptions = () => {
     switch (tipo) {
@@ -268,51 +272,165 @@ export default function InformacionComercio() {
           <Text style={styles.sectionTitle}>Tipo y Rubro</Text>
 
           <Text style={styles.label}>Tipo *</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={tipo}
-              onValueChange={(value) => {
-                setTipo(value);
-                setRubro('');
-                setSubRubro('');
-              }}
-              style={styles.picker}
-            >
-              <Picker.Item label="Comercio" value="Comercio" />
-              <Picker.Item label="Servicio" value="Servicio" />
-              <Picker.Item label="Organización Pública" value="Organización Pública" />
-            </Picker>
-          </View>
+          {Platform.OS === 'ios' ? (
+            <>
+              <TouchableOpacity
+                style={styles.iosPickerButton}
+                onPress={() => setShowTipoPicker(true)}
+              >
+                <Text style={styles.iosPickerButtonText}>{tipo || 'Seleccionar...'}</Text>
+              </TouchableOpacity>
+              <Modal
+                visible={showTipoPicker}
+                transparent
+                animationType="slide"
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Seleccionar Tipo</Text>
+                      <TouchableOpacity onPress={() => setShowTipoPicker(false)}>
+                        <Text style={styles.modalDone}>Listo</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Picker
+                      selectedValue={tipo}
+                      onValueChange={(value) => {
+                        setTipo(value);
+                        setRubro('');
+                        setSubRubro('');
+                      }}
+                      style={styles.iosPicker}
+                    >
+                      <Picker.Item label="Comercio" value="Comercio" />
+                      <Picker.Item label="Servicio" value="Servicio" />
+                      <Picker.Item label="Organización Pública" value="Organización Pública" />
+                    </Picker>
+                  </View>
+                </View>
+              </Modal>
+            </>
+          ) : (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={tipo}
+                onValueChange={(value) => {
+                  setTipo(value);
+                  setRubro('');
+                  setSubRubro('');
+                }}
+                style={styles.picker}
+              >
+                <Picker.Item label="Comercio" value="Comercio" />
+                <Picker.Item label="Servicio" value="Servicio" />
+                <Picker.Item label="Organización Pública" value="Organización Pública" />
+              </Picker>
+            </View>
+          )}
 
           <Text style={styles.label}>Rubro *</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={rubro}
-              onValueChange={setRubro}
-              style={styles.picker}
-            >
-              <Picker.Item label="Seleccionar..." value="" />
-              {getRubrosOptions().map((r) => (
-                <Picker.Item key={r} label={r} value={r} />
-              ))}
-            </Picker>
-          </View>
+          {Platform.OS === 'ios' ? (
+            <>
+              <TouchableOpacity
+                style={styles.iosPickerButton}
+                onPress={() => setShowRubroPicker(true)}
+              >
+                <Text style={styles.iosPickerButtonText}>{rubro || 'Seleccionar...'}</Text>
+              </TouchableOpacity>
+              <Modal
+                visible={showRubroPicker}
+                transparent
+                animationType="slide"
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Seleccionar Rubro</Text>
+                      <TouchableOpacity onPress={() => setShowRubroPicker(false)}>
+                        <Text style={styles.modalDone}>Listo</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Picker
+                      selectedValue={rubro}
+                      onValueChange={setRubro}
+                      style={styles.iosPicker}
+                    >
+                      <Picker.Item label="Seleccionar..." value="" />
+                      {getRubrosOptions().map((r) => (
+                        <Picker.Item key={r} label={r} value={r} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+              </Modal>
+            </>
+          ) : (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={rubro}
+                onValueChange={setRubro}
+                style={styles.picker}
+              >
+                <Picker.Item label="Seleccionar..." value="" />
+                {getRubrosOptions().map((r) => (
+                  <Picker.Item key={r} label={r} value={r} />
+                ))}
+              </Picker>
+            </View>
+          )}
 
           {tipo === 'Comercio' && rubro && (
             <>
               <Text style={styles.label}>Sub Rubro</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={subRubro}
-                  onValueChange={setSubRubro}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Seleccionar..." value="" />
-                  {getSubRubrosOptions().map((sr: string) => (
-                    <Picker.Item key={sr} label={sr} value={sr} />
-                  ))}
-                </Picker>
-              </View>
+              {Platform.OS === 'ios' ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.iosPickerButton}
+                    onPress={() => setShowSubRubroPicker(true)}
+                  >
+                    <Text style={styles.iosPickerButtonText}>{subRubro || 'Seleccionar...'}</Text>
+                  </TouchableOpacity>
+                  <Modal
+                    visible={showSubRubroPicker}
+                    transparent
+                    animationType="slide"
+                  >
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                          <Text style={styles.modalTitle}>Seleccionar Sub Rubro</Text>
+                          <TouchableOpacity onPress={() => setShowSubRubroPicker(false)}>
+                            <Text style={styles.modalDone}>Listo</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <Picker
+                          selectedValue={subRubro}
+                          onValueChange={setSubRubro}
+                          style={styles.iosPicker}
+                        >
+                          <Picker.Item label="Seleccionar..." value="" />
+                          {getSubRubrosOptions().map((sr: string) => (
+                            <Picker.Item key={sr} label={sr} value={sr} />
+                          ))}
+                        </Picker>
+                      </View>
+                    </View>
+                  </Modal>
+                </>
+              ) : (
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={subRubro}
+                    onValueChange={setSubRubro}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Seleccionar..." value="" />
+                    {getSubRubrosOptions().map((sr: string) => (
+                      <Picker.Item key={sr} label={sr} value={sr} />
+                    ))}
+                  </Picker>
+                </View>
+              )}
             </>
           )}
         </View>
@@ -681,5 +799,49 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  iosPickerButton: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: '#f9fafb',
+    marginBottom: 16,
+  },
+  iosPickerButtonText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#111',
+  },
+  modalDone: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#1a2332',
+  },
+  iosPicker: {
+    height: 200,
   },
 });

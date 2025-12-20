@@ -271,25 +271,32 @@ export default function CargarOferta() {
                 </Text>
                 <Calendar size={20} color="#6b7280" />
               </TouchableOpacity>
-              {showDatePickerInicio && (
-                <View style={Platform.OS === 'ios' ? styles.iosDatePickerContainer : undefined}>
+              {showDatePickerInicio && Platform.OS === 'ios' && (
+                <View style={styles.iosDatePickerContainer}>
                   <DateTimePicker
                     value={vigenciaInicio || new Date()}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display="spinner"
                     onChange={handleChangeInicio}
                     minimumDate={new Date()}
-                    style={Platform.OS === 'ios' ? styles.iosDatePicker : undefined}
+                    style={styles.iosDatePicker}
                   />
-                  {Platform.OS === 'ios' && (
-                    <TouchableOpacity
-                      style={styles.iosDatePickerDone}
-                      onPress={() => setShowDatePickerInicio(false)}
-                    >
-                      <Text style={styles.iosDatePickerDoneText}>Listo</Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    style={styles.iosDatePickerDone}
+                    onPress={() => setShowDatePickerInicio(false)}
+                  >
+                    <Text style={styles.iosDatePickerDoneText}>Listo</Text>
+                  </TouchableOpacity>
                 </View>
+              )}
+              {showDatePickerInicio && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={vigenciaInicio || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleChangeInicio}
+                  minimumDate={new Date()}
+                />
               )}
             </View>
 
@@ -307,25 +314,32 @@ export default function CargarOferta() {
                 </Text>
                 <Calendar size={20} color="#6b7280" />
               </TouchableOpacity>
-              {showDatePickerFin && (
-                <View style={Platform.OS === 'ios' ? styles.iosDatePickerContainer : undefined}>
+              {showDatePickerFin && Platform.OS === 'ios' && (
+                <View style={styles.iosDatePickerContainer}>
                   <DateTimePicker
                     value={vigenciaFin || vigenciaInicio || new Date()}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display="spinner"
                     onChange={handleChangeFin}
                     minimumDate={vigenciaInicio || new Date()}
-                    style={Platform.OS === 'ios' ? styles.iosDatePicker : undefined}
+                    style={styles.iosDatePicker}
                   />
-                  {Platform.OS === 'ios' && (
-                    <TouchableOpacity
-                      style={styles.iosDatePickerDone}
-                      onPress={() => setShowDatePickerFin(false)}
-                    >
-                      <Text style={styles.iosDatePickerDoneText}>Listo</Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    style={styles.iosDatePickerDone}
+                    onPress={() => setShowDatePickerFin(false)}
+                  >
+                    <Text style={styles.iosDatePickerDoneText}>Listo</Text>
+                  </TouchableOpacity>
                 </View>
+              )}
+              {showDatePickerFin && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={vigenciaFin || vigenciaInicio || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleChangeFin}
+                  minimumDate={vigenciaInicio || new Date()}
+                />
               )}
             </View>
           </View>
@@ -551,12 +565,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     marginTop: 8,
+    marginBottom: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#d1d5db',
   },
   iosDatePicker: {
-    height: 180,
+    height: 200,
+    width: '100%',
   },
   iosDatePickerDone: {
     backgroundColor: '#1a2332',
