@@ -7,21 +7,27 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Eye, EyeOff, Mail, Fingerprint, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff, Mail, Fingerprint, Trash2, Camera, User } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
+import { moderateImageContent } from '../../lib/content-moderation';
 
 export default function EditarPerfilComercio() {
   const router = useRouter();
-  const { user, deleteAccount, isBiometricEnabled, isBiometricAvailable, enableBiometric, disableBiometric } = useAuth();
+  const { user, updateUser, deleteAccount, isBiometricEnabled, isBiometricAvailable, enableBiometric, disableBiometric } = useAuth();
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
   const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [fotoPerfil, setFotoPerfil] = useState<string>((user as any)?.fotoPerfil || '');
+  const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -98,6 +104,42 @@ export default function EditarPerfilComercio() {
     );
   };
 
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para seleccionar imágenes');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageUri = result.assets[0].uri;
+      
+      setIsModeratingImage(true);
+      const moderation = await moderateImageContent(imageUri);
+      setIsModeratingImage(false);
+
+      if (!moderation.isAppropriate) {
+        Alert.alert(
+          'Contenido no permitido',
+          'La imagen seleccionada contiene contenido inapropiado y no puede ser utilizada. Por favor, selecciona una imagen diferente.',
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
+
+      setFotoPerfil(imageUri);
+      await updateUser({ fotoPerfil: imageUri });
+      Alert.alert('Éxito', 'Foto de perfil actualizada');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -112,6 +154,33 @@ export default function EditarPerfilComercio() {
       </View>
 
       <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Foto de Perfil</Text>
+          <View style={styles.profilePhotoSection}>
+            {fotoPerfil ? (
+              <Image source={{ uri: fotoPerfil }} style={styles.profilePhoto} />
+            ) : (
+              <View style={styles.profilePhotoPlaceholder}>
+                <User size={48} color="#9ca3af" />
+              </View>
+            )}
+            <TouchableOpacity 
+              style={[styles.changePhotoButton, isModeratingImage && styles.buttonDisabled]} 
+              onPress={handlePickImage}
+              disabled={isModeratingImage}
+            >
+              {isModeratingImage ? (
+                <ActivityIndicator size="small" color="#1a2332" />
+              ) : (
+                <Camera size={20} color="#1a2332" />
+              )}
+              <Text style={styles.changePhotoText}>
+                {isModeratingImage ? 'Verificando imagen...' : 'Cambiar foto'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cambiar Contraseña</Text>
 
@@ -376,5 +445,40 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  profilePhotoSection: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  profilePhoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  profilePhotoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#1a2332',
+    gap: 8,
+  },
+  changePhotoText: {
+    color: '#1a2332',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });
