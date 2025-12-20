@@ -636,8 +636,6 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: '#fff',
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
   },
   contactIconsContainer: {
     flexDirection: 'row',
