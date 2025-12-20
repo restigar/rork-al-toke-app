@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -17,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import type { Oferta, Comercio } from '../../types';
+import { moderateImageContent } from '../../lib/content-moderation';
 
 export default function CargarOferta() {
   const router = useRouter();
@@ -40,6 +42,7 @@ export default function CargarOferta() {
   const [showDatePickerInicio, setShowDatePickerInicio] = useState<boolean>(false);
   const [showDatePickerFin, setShowDatePickerFin] = useState<boolean>(false);
   const [imagenUrl, setImagenUrl] = useState<string>((params.imagenUrl as string) || '');
+  const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const handlePublicar = async () => {
     if (!titulo || !descripcion || !precio || !vigenciaInicio || !vigenciaFin) {
@@ -174,7 +177,22 @@ export default function CargarOferta() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImagenUrl(result.assets[0].uri);
+      const imageUri = result.assets[0].uri;
+      
+      setIsModeratingImage(true);
+      const moderation = await moderateImageContent(imageUri);
+      setIsModeratingImage(false);
+
+      if (!moderation.isAppropriate) {
+        Alert.alert(
+          'Contenido no permitido',
+          'La imagen seleccionada contiene contenido inapropiado y no puede ser utilizada. Por favor, selecciona una imagen diferente.',
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
+
+      setImagenUrl(imageUri);
     }
   };
 
@@ -317,13 +335,26 @@ export default function CargarOferta() {
               <ImageIcon size={20} color="#374151" />
               <Text style={styles.label}>Foto de la Oferta</Text>
             </View>
-            <TouchableOpacity style={styles.imagePickerButton} onPress={handlePickImage}>
+            <TouchableOpacity 
+              style={[styles.imagePickerButton, isModeratingImage && styles.buttonDisabled]} 
+              onPress={handlePickImage}
+              disabled={isModeratingImage}
+            >
               {imagenUrl ? (
                 <Image source={{ uri: imagenUrl }} style={styles.imagePreview} />
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <ImageIcon size={40} color="#9ca3af" />
-                  <Text style={styles.imagePlaceholderText}>Seleccionar imagen</Text>
+                  {isModeratingImage ? (
+                    <>
+                      <ActivityIndicator size="large" color="#1a2332" />
+                      <Text style={styles.imagePlaceholderText}>Verificando imagen...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={40} color="#9ca3af" />
+                      <Text style={styles.imagePlaceholderText}>Seleccionar imagen</Text>
+                    </>
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -536,5 +567,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -19,6 +19,7 @@ import * as Location from 'expo-location';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import type { OfertaDelDia } from '../../types';
+import { moderateImageContent } from '../../lib/content-moderation';
 
 export default function CargarOfertaDia() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function CargarOfertaDia() {
   const [numeroContacto, setNumeroContacto] = useState<string>('');
   const [ubicacion, setUbicacion] = useState<{ latitud: number; longitud: number; ciudad: string } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
+  const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const handlePublicar = async () => {
     if (!titulo || !descripcion || !precio) {
@@ -102,7 +104,22 @@ export default function CargarOfertaDia() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImagenUrl(result.assets[0].uri);
+      const imageUri = result.assets[0].uri;
+      
+      setIsModeratingImage(true);
+      const moderation = await moderateImageContent(imageUri);
+      setIsModeratingImage(false);
+
+      if (!moderation.isAppropriate) {
+        Alert.alert(
+          'Contenido no permitido',
+          'La imagen seleccionada contiene contenido inapropiado y no puede ser utilizada. Por favor, selecciona una imagen diferente.',
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
+
+      setImagenUrl(imageUri);
     }
   };
 
@@ -274,13 +291,26 @@ export default function CargarOfertaDia() {
               <ImageIcon size={20} color="#374151" />
               <Text style={styles.label}>Foto de la Oferta</Text>
             </View>
-            <TouchableOpacity style={styles.imagePickerButton} onPress={handlePickImage}>
+            <TouchableOpacity 
+              style={[styles.imagePickerButton, isModeratingImage && styles.buttonDisabled]} 
+              onPress={handlePickImage}
+              disabled={isModeratingImage}
+            >
               {imagenUrl ? (
                 <Image source={{ uri: imagenUrl }} style={styles.imagePreview} />
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <ImageIcon size={40} color="#9ca3af" />
-                  <Text style={styles.imagePlaceholderText}>Seleccionar imagen</Text>
+                  {isModeratingImage ? (
+                    <>
+                      <ActivityIndicator size="large" color="#9dd9c1" />
+                      <Text style={styles.imagePlaceholderText}>Verificando imagen...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={40} color="#9ca3af" />
+                      <Text style={styles.imagePlaceholderText}>Seleccionar imagen</Text>
+                    </>
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -519,5 +549,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as Location from 'expo-location';
@@ -19,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import type { Comercio, DiaHorario } from '../../types';
 import { RUBROS_COMERCIO, RUBROS_SERVICIO, RUBROS_ORGANIZACION, DIAS_SEMANA } from '../../constants/businessData';
+import { moderateImageContent } from '../../lib/content-moderation';
 
 export default function InformacionComercio() {
   const router = useRouter();
@@ -48,6 +50,7 @@ export default function InformacionComercio() {
       tarde: { inicio: '17:00', fin: '21:00' },
     }))
   );
+  const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const getRubrosOptions = () => {
     switch (tipo) {
@@ -145,7 +148,22 @@ export default function InformacionComercio() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setFotoPerfil(result.assets[0].uri);
+      const imageUri = result.assets[0].uri;
+      
+      setIsModeratingImage(true);
+      const moderation = await moderateImageContent(imageUri);
+      setIsModeratingImage(false);
+
+      if (!moderation.isAppropriate) {
+        Alert.alert(
+          'Contenido no permitido',
+          'La imagen seleccionada contiene contenido inapropiado y no puede ser utilizada. Por favor, selecciona una imagen diferente.',
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
+
+      setFotoPerfil(imageUri);
     }
   };
 
@@ -209,13 +227,26 @@ export default function InformacionComercio() {
           />
 
           <Text style={styles.label}>Logo del Comercio</Text>
-          <TouchableOpacity style={styles.imagePickerButton} onPress={handlePickImage}>
+          <TouchableOpacity 
+            style={[styles.imagePickerButton, isModeratingImage && styles.buttonDisabled]} 
+            onPress={handlePickImage}
+            disabled={isModeratingImage}
+          >
             {fotoPerfil ? (
               <Image source={{ uri: fotoPerfil }} style={styles.logoPreview} />
             ) : (
               <View style={styles.logoPlaceholder}>
-                <ImageIcon size={40} color="#9ca3af" />
-                <Text style={styles.logoPlaceholderText}>Seleccionar logo</Text>
+                {isModeratingImage ? (
+                  <>
+                    <ActivityIndicator size="large" color="#1a2332" />
+                    <Text style={styles.logoPlaceholderText}>Verificando imagen...</Text>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon size={40} color="#9ca3af" />
+                    <Text style={styles.logoPlaceholderText}>Seleccionar logo</Text>
+                  </>
+                )}
               </View>
             )}
           </TouchableOpacity>
@@ -648,5 +679,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
   },
-
+  buttonDisabled: {
+    opacity: 0.5,
+  },
 });

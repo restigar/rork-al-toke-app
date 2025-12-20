@@ -8,12 +8,14 @@ import {
   ScrollView,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Eye, EyeOff, Trash2, Mail, Fingerprint, Camera, User } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
+import { moderateImageContent } from '../../lib/content-moderation';
 
 export default function EditarPerfilCliente() {
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function EditarPerfilCliente() {
   const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [fotoPerfil, setFotoPerfil] = useState<string>((user as any)?.fotoPerfil || '');
+  const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -116,8 +119,23 @@ export default function EditarPerfilCliente() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setFotoPerfil(result.assets[0].uri);
-      await updateUser({ fotoPerfil: result.assets[0].uri });
+      const imageUri = result.assets[0].uri;
+      
+      setIsModeratingImage(true);
+      const moderation = await moderateImageContent(imageUri);
+      setIsModeratingImage(false);
+
+      if (!moderation.isAppropriate) {
+        Alert.alert(
+          'Contenido no permitido',
+          'La imagen seleccionada contiene contenido inapropiado y no puede ser utilizada. Por favor, selecciona una imagen diferente.',
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
+
+      setFotoPerfil(imageUri);
+      await updateUser({ fotoPerfil: imageUri });
       Alert.alert('Éxito', 'Foto de perfil actualizada');
     }
   };
@@ -146,9 +164,19 @@ export default function EditarPerfilCliente() {
                 <User size={48} color="#9ca3af" />
               </View>
             )}
-            <TouchableOpacity style={styles.changePhotoButton} onPress={handlePickImage}>
-              <Camera size={20} color="#9dd9c1" />
-              <Text style={styles.changePhotoText}>Cambiar foto</Text>
+            <TouchableOpacity 
+              style={[styles.changePhotoButton, isModeratingImage && styles.buttonDisabled]} 
+              onPress={handlePickImage}
+              disabled={isModeratingImage}
+            >
+              {isModeratingImage ? (
+                <ActivityIndicator size="small" color="#9dd9c1" />
+              ) : (
+                <Camera size={20} color="#9dd9c1" />
+              )}
+              <Text style={styles.changePhotoText}>
+                {isModeratingImage ? 'Verificando imagen...' : 'Cambiar foto'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -446,5 +474,8 @@ const styles = StyleSheet.create({
     color: '#9dd9c1',
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });
