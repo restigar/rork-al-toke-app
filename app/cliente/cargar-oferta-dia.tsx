@@ -10,6 +10,7 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
@@ -262,22 +263,30 @@ export default function CargarOfertaDia() {
               <Calendar size={20} color="#9dd9c1" />
             </TouchableOpacity>
             {showDatePicker && Platform.OS === 'ios' && (
-              <View style={styles.iosDatePickerContainer}>
-                <DateTimePicker
-                  value={fecha}
-                  mode="date"
-                  display="spinner"
-                  onChange={onChangeFecha}
-                  minimumDate={new Date()}
-                  style={styles.iosDatePicker}
-                />
-                <TouchableOpacity
-                  style={styles.iosDatePickerDone}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={styles.iosDatePickerDoneText}>Listo</Text>
-                </TouchableOpacity>
-              </View>
+              <Modal
+                visible={showDatePicker}
+                transparent
+                animationType="slide"
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Seleccionar Fecha</Text>
+                      <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                        <Text style={styles.modalDone}>Listo</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={fecha}
+                      mode="date"
+                      display="spinner"
+                      onChange={onChangeFecha}
+                      minimumDate={new Date()}
+                      style={styles.iosDatePicker}
+                    />
+                  </View>
+                </View>
+              </Modal>
             )}
             {showDatePicker && Platform.OS === 'android' && (
               <DateTimePicker
@@ -536,28 +545,38 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#fff',
   },
-  iosDatePickerContainer: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 8,
-    marginBottom: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#111',
+  },
+  modalDone: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#9dd9c1',
   },
   iosDatePicker: {
     height: 200,
     width: '100%',
-  },
-  iosDatePickerDone: {
-    backgroundColor: '#9dd9c1',
-    padding: 12,
-    alignItems: 'center',
-  },
-  iosDatePickerDoneText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600' as const,
   },
   buttonDisabled: {
     opacity: 0.5,
