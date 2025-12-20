@@ -286,6 +286,9 @@ export default function LandingPage() {
             </TouchableOpacity>
           </View>
 
+        </View>
+
+        <View style={[styles.footerContainer, { paddingBottom: insets.bottom + 20 }]}>
           <View style={styles.contactIconsContainer}>
             <TouchableOpacity
               style={styles.contactIcon}
@@ -626,11 +629,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
   },
+  footerContainer: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
   contactIconsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 20,
-    marginTop: 32,
+    marginBottom: 16,
   },
   contactIcon: {
     width: 56,
@@ -651,8 +664,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
-    paddingBottom: 20,
     gap: 8,
   },
   legalLinkText: {
