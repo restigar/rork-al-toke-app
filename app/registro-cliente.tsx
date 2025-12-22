@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator, Platform } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
@@ -92,6 +92,15 @@ export default function RegistroCliente() {
         Alert.alert('Error', 'Error al guardar datos del cliente');
         return;
       }
+
+      await createDocument('users', firebaseUser.uid, {
+        name: firebaseUser.displayName || 'Usuario',
+        email: firebaseUser.email || '',
+        role: 'Cliente',
+        status: 'Activo',
+        city: 'N/A',
+        os: Platform.OS === 'ios' ? 'iOS' : 'Android',
+      });
       
       try {
         await login(newCliente);
@@ -153,6 +162,15 @@ export default function RegistroCliente() {
         Alert.alert('Error', 'Error al guardar datos del cliente');
         return;
       }
+
+      await createDocument('users', firebaseUser.uid, {
+        name: firebaseUser.displayName || 'Usuario',
+        email: firebaseUser.email || '',
+        role: 'Cliente',
+        status: 'Activo',
+        city: 'N/A',
+        os: Platform.OS === 'ios' ? 'iOS' : 'Android',
+      });
       
       try {
         await login(newCliente);
@@ -221,7 +239,16 @@ export default function RegistroCliente() {
         return;
       }
 
-      console.log('✅ Documento creado exitosamente. Iniciando login...');
+      console.log('✅ Documento creado en clientes. Creando documento en users para panel admin...');
+      await createDocument('users', firebaseUser.uid, {
+        name,
+        email,
+        role: 'Cliente',
+        status: 'Activo',
+        city: 'N/A',
+        os: Platform.OS === 'ios' ? 'iOS' : 'Android',
+      });
+      console.log('✅ Documento creado en users exitosamente. Iniciando login...');
       
       try {
         await login(newCliente, { email, password, type: 'cliente' });

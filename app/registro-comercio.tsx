@@ -94,6 +94,13 @@ export default function RegistroComercio() {
         Alert.alert('Error', 'Error al guardar datos del comercio');
         return;
       }
+
+      await createDocument('stores', firebaseUser.uid, {
+        name: firebaseUser.displayName || 'Comercio',
+        email: firebaseUser.email || '',
+        phone: newComercio.telefono || 'N/A',
+        status: 'Activo',
+      });
       
       try {
         await saveComercio(newComercio);
@@ -158,6 +165,13 @@ export default function RegistroComercio() {
         Alert.alert('Error', 'Error al guardar datos del comercio');
         return;
       }
+
+      await createDocument('stores', firebaseUser.uid, {
+        name: firebaseUser.displayName || 'Comercio',
+        email: firebaseUser.email || '',
+        phone: newComercio.telefono || 'N/A',
+        status: 'Activo',
+      });
       
       try {
         await saveComercio(newComercio);
@@ -225,7 +239,14 @@ export default function RegistroComercio() {
         return;
       }
 
-      console.log('✅ Documento creado exitosamente. Iniciando login...');
+      console.log('✅ Documento creado en comercios. Creando documento en stores para panel admin...');
+      await createDocument('stores', firebaseUser.uid, {
+        name: nombre,
+        email,
+        phone: telefono || 'N/A',
+        status: 'Activo',
+      });
+      console.log('✅ Documento creado en stores exitosamente. Iniciando login...');
       
       try {
         await saveComercio(newComercio);
