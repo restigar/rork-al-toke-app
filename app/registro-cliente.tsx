@@ -93,7 +93,8 @@ export default function RegistroCliente() {
         return;
       }
 
-      await createDocument('users', firebaseUser.uid, {
+      console.log('📝 Creando documento en users para panel admin...');
+      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Usuario',
         email: firebaseUser.email || '',
         role: 'Cliente',
@@ -101,6 +102,12 @@ export default function RegistroCliente() {
         city: 'N/A',
         os: Platform.OS === 'ios' ? 'iOS' : 'Android',
       });
+      
+      if (!usersSuccess || usersError) {
+        console.error('❌ Error al crear documento en users:', usersError);
+      } else {
+        console.log('✅ Documento creado exitosamente en users');
+      }
       
       try {
         await login(newCliente);
@@ -163,7 +170,8 @@ export default function RegistroCliente() {
         return;
       }
 
-      await createDocument('users', firebaseUser.uid, {
+      console.log('📝 Creando documento en users para panel admin...');
+      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Usuario',
         email: firebaseUser.email || '',
         role: 'Cliente',
@@ -171,6 +179,12 @@ export default function RegistroCliente() {
         city: 'N/A',
         os: Platform.OS === 'ios' ? 'iOS' : 'Android',
       });
+      
+      if (!usersSuccess || usersError) {
+        console.error('❌ Error al crear documento en users:', usersError);
+      } else {
+        console.log('✅ Documento creado exitosamente en users');
+      }
       
       try {
         await login(newCliente);
@@ -240,7 +254,7 @@ export default function RegistroCliente() {
       }
 
       console.log('✅ Documento creado en clientes. Creando documento en users para panel admin...');
-      await createDocument('users', firebaseUser.uid, {
+      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
         name,
         email,
         role: 'Cliente',
@@ -248,7 +262,14 @@ export default function RegistroCliente() {
         city: 'N/A',
         os: Platform.OS === 'ios' ? 'iOS' : 'Android',
       });
-      console.log('✅ Documento creado en users exitosamente. Iniciando login...');
+      
+      if (!usersSuccess || usersError) {
+        console.error('❌ Error al crear documento en users:', usersError);
+      } else {
+        console.log('✅ Documento creado exitosamente en users para panel admin');
+      }
+      
+      console.log('✅ Proceso de registro completado. Iniciando login...');
       
       try {
         await login(newCliente, { email, password, type: 'cliente' });

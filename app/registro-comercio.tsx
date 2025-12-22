@@ -95,12 +95,19 @@ export default function RegistroComercio() {
         return;
       }
 
-      await createDocument('stores', firebaseUser.uid, {
+      console.log('📝 Creando documento en stores para panel admin...');
+      const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Comercio',
         email: firebaseUser.email || '',
         phone: newComercio.telefono || 'N/A',
         status: 'Activo',
       });
+      
+      if (!storesSuccess || storesError) {
+        console.error('❌ Error al crear documento en stores:', storesError);
+      } else {
+        console.log('✅ Documento creado exitosamente en stores');
+      }
       
       try {
         await saveComercio(newComercio);
@@ -166,12 +173,19 @@ export default function RegistroComercio() {
         return;
       }
 
-      await createDocument('stores', firebaseUser.uid, {
+      console.log('📝 Creando documento en stores para panel admin...');
+      const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Comercio',
         email: firebaseUser.email || '',
         phone: newComercio.telefono || 'N/A',
         status: 'Activo',
       });
+      
+      if (!storesSuccess || storesError) {
+        console.error('❌ Error al crear documento en stores:', storesError);
+      } else {
+        console.log('✅ Documento creado exitosamente en stores');
+      }
       
       try {
         await saveComercio(newComercio);
@@ -240,13 +254,20 @@ export default function RegistroComercio() {
       }
 
       console.log('✅ Documento creado en comercios. Creando documento en stores para panel admin...');
-      await createDocument('stores', firebaseUser.uid, {
+      const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
         name: nombre,
         email,
         phone: telefono || 'N/A',
         status: 'Activo',
       });
-      console.log('✅ Documento creado en stores exitosamente. Iniciando login...');
+      
+      if (!storesSuccess || storesError) {
+        console.error('❌ Error al crear documento en stores:', storesError);
+      } else {
+        console.log('✅ Documento creado exitosamente en stores para panel admin');
+      }
+      
+      console.log('✅ Proceso de registro completado. Iniciando login...');
       
       try {
         await saveComercio(newComercio);
