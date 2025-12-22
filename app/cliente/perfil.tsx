@@ -235,7 +235,7 @@ export default function ClientePerfil() {
         : comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.longitud, 0) / comerciosConUbicacion.length;
 
       const markers = comerciosConUbicacion
-        .slice(0, 10)
+        .slice(0, 20)
         .map((c) => {
           const nombreEncoded = encodeURIComponent(c.nombre.substring(0, 20));
           return `&markers=color:red%7Clabel:${nombreEncoded.substring(0, 1)}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
@@ -245,7 +245,7 @@ export default function ClientePerfil() {
       const url = `https://www.google.com/maps/search/?api=1&query=${centerLat},${centerLng}${markers}`;
       
       console.log('✅ Abriendo mapa con múltiples comercios:', comerciosConUbicacion.length);
-      console.log('📍 Comercios en el mapa:', comerciosConUbicacion.slice(0, 10).map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
+      console.log('📍 Comercios en el mapa:', comerciosConUbicacion.slice(0, 20).map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
       console.log('🔗 URL del mapa:', url);
       
       Linking.openURL(url).catch(error => {
