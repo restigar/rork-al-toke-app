@@ -10,18 +10,21 @@ import {
   ActivityIndicator,
   Image,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Calendar, LogOut, Settings, Tag, Mic, MicOff, User, MessageCircle, Mail } from 'lucide-react-native';
+import { Search, Calendar, LogOut, Settings, Tag, Mic, MicOff, User, MessageCircle, Mail, Map } from 'lucide-react-native';
 import { Audio } from 'expo-av';
-import { Linking } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useBusiness } from '../../context/BusinessContext';
+import * as Location from 'expo-location';
 
 
 export default function ClientePerfil() {
   const router = useRouter();
   const { user, logout, isComercio } = useAuth();
+  const { comercios } = useBusiness();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchMode, setSearchMode] = useState<'ofertas' | 'comercios'>('ofertas');
@@ -192,6 +195,69 @@ export default function ClientePerfil() {
     }
   };
 
+  const abrirMapaComerciosCercanos = async () => {
+    console.log('🗺️ Intentando abrir mapa con todos los comercios registrados');
+    console.log('📊 Total de comercios:', comercios.length);
+    
+    const comerciosConUbicacion = comercios.filter(c => c.ubicacion);
+    console.log('📍 Comercios con ubicación:', comerciosConUbicacion.length);
+    
+    if (comerciosConUbicacion.length === 0) {
+      Alert.alert('Sin comercios', 'No hay comercios con ubicación registrada en el sistema');
+      return;
+    }
+
+    try {
+      let userLocation = null;
+      if (Platform.OS !== 'web') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          userLocation = await Location.getCurrentPositionAsync({});
+          console.log('📍 Ubicación del usuario obtenida:', userLocation.coords);
+        }
+      }
+
+      if (comerciosConUbicacion.length === 1) {
+        const comercio = comerciosConUbicacion[0];
+        const { latitud, longitud } = comercio.ubicacion!;
+        const nombreEncoded = encodeURIComponent(comercio.nombre);
+        const url = `https://www.google.com/maps/search/?api=1&query=${nombreEncoded}+${latitud},${longitud}`;
+        console.log('✅ Abriendo mapa con 1 comercio:', comercio.nombre);
+        Linking.openURL(url);
+        return;
+      }
+
+      const centerLat = userLocation
+        ? userLocation.coords.latitude
+        : comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.latitud, 0) / comerciosConUbicacion.length;
+      const centerLng = userLocation
+        ? userLocation.coords.longitude
+        : comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.longitud, 0) / comerciosConUbicacion.length;
+
+      const markers = comerciosConUbicacion
+        .slice(0, 10)
+        .map((c) => {
+          const nombreEncoded = encodeURIComponent(c.nombre.substring(0, 20));
+          return `&markers=color:red%7Clabel:${nombreEncoded.substring(0, 1)}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
+        })
+        .join('');
+
+      const url = `https://www.google.com/maps/search/?api=1&query=${centerLat},${centerLng}${markers}`;
+      
+      console.log('✅ Abriendo mapa con múltiples comercios:', comerciosConUbicacion.length);
+      console.log('📍 Comercios en el mapa:', comerciosConUbicacion.slice(0, 10).map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
+      console.log('🔗 URL del mapa:', url);
+      
+      Linking.openURL(url).catch(error => {
+        console.error('❌ Error al abrir el mapa:', error);
+        Alert.alert('Error', 'No se pudo abrir el mapa');
+      });
+    } catch (error) {
+      console.error('❌ Error al abrir mapa:', error);
+      Alert.alert('Error', 'No se pudo obtener tu ubicación');
+    }
+  };
+
   return (
     <View style={styles.backgroundImage}>
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -300,6 +366,14 @@ export default function ClientePerfil() {
               >
                 <Tag size={18} color="#fff" />
                 <Text style={styles.cargarOfertaButtonText}>Cargar Oferta del Día</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.mapaButton}
+                onPress={abrirMapaComerciosCercanos}
+              >
+                <Map size={18} color="#fff" />
+                <Text style={styles.mapaButtonText}>Ver Comercios en Mapa</Text>
               </TouchableOpacity>
             </View>
 
@@ -472,6 +546,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   cargarOfertaButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600' as const,
+  },
+  mapaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: '#1a2332',
+    borderRadius: 12,
+  },
+  mapaButtonText: {
     fontSize: 16,
     color: '#fff',
     fontWeight: '600' as const,
