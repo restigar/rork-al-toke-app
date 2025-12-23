@@ -52,12 +52,13 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
     setIsChecking(true);
     
     try {
-      console.log('🔍 Verificando versión de la app:', currentVersion);
+      console.log('🔍 [VersionContext] Verificando versión de la app:', currentVersion);
 
       const timeoutPromise = new Promise<{ data: null; error: string }>((resolve) => {
         setTimeout(() => {
+          console.log('⚠️ [VersionContext] Timeout al verificar versión, permitiendo acceso');
           resolve({ data: null, error: 'timeout' });
-        }, 5000);
+        }, 2000);
       });
 
       const result = await Promise.race([
@@ -68,7 +69,7 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
       const { data, error } = result;
 
       if (error || !data) {
-        console.log('⚠️ No se encontró configuración de versión o timeout, permitiendo acceso');
+        console.log('⚠️ [VersionContext] No se encontró configuración de versión, permitiendo acceso');
         setIsVersionValid(true);
         setIsChecking(false);
         return;
@@ -77,9 +78,9 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
       setVersionConfig(data);
 
       const isValid = compareVersions(currentVersion, data.minVersion);
-      console.log(`📱 Versión actual: ${currentVersion}`);
-      console.log(`📋 Versión mínima: ${data.minVersion}`);
-      console.log(`✅ Versión válida: ${isValid}`);
+      console.log(`📱 [VersionContext] Versión actual: ${currentVersion}`);
+      console.log(`📋 [VersionContext] Versión mínima: ${data.minVersion}`);
+      console.log(`✅ [VersionContext] Versión válida: ${isValid}`);
 
       setIsVersionValid(isValid);
       
@@ -89,16 +90,17 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
 
       setIsChecking(false);
     } catch (error) {
-      console.error('❌ Error verificando versión:', error);
+      console.error('❌ [VersionContext] Error verificando versión:', error);
       setIsVersionValid(true);
       setIsChecking(false);
     }
   }, [currentVersion]);
 
   useEffect(() => {
+    console.log('🚀 [VersionContext] Iniciando verificación de versión');
     const timer = setTimeout(() => {
       checkVersion();
-    }, 500);
+    }, 100);
     
     return () => clearTimeout(timer);
   }, [checkVersion]);

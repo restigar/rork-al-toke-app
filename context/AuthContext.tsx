@@ -25,42 +25,59 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const loadUser = useCallback(async () => {
     try {
-      console.log('🔍 Verificando sesión de Firebase...');
-      const firebaseUser = getCurrentUser();
+      console.log('🔍 [AuthContext] Iniciando carga de usuario...');
       
-      if (firebaseUser) {
-        console.log('✅ Sesión activa en Firebase:', firebaseUser.uid);
-        
-        const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
-        if (clienteData) {
-          console.log('✅ Datos de cliente encontrados en Firestore');
-          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(clienteData));
-          setUser(clienteData as User);
-        } else {
-          const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
-          if (comercioData) {
-            console.log('✅ Datos de comercio encontrados en Firestore');
-            await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(comercioData));
-            setUser(comercioData as User);
-          } else {
-            console.log('⚠️ Usuario de Firebase no tiene datos en Firestore');
-          }
-        }
+      const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
+      if (userJson) {
+        console.log('✅ [AuthContext] Usuario encontrado en AsyncStorage');
+        setUser(JSON.parse(userJson));
       } else {
-        console.log('ℹ️ No hay sesión activa en Firebase, verificando AsyncStorage...');
-        const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
-        if (userJson) {
-          console.log('✅ Datos de usuario encontrados en AsyncStorage');
-          setUser(JSON.parse(userJson));
+        console.log('ℹ️ [AuthContext] No hay usuario guardado en AsyncStorage');
+      }
+      
+      try {
+        const firebaseUser = getCurrentUser();
+        if (firebaseUser) {
+          console.log('✅ [AuthContext] Sesión activa en Firebase:', firebaseUser.uid);
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 3000)
+          );
+          
+          try {
+            const clientePromise = getDocument('clientes', firebaseUser.uid);
+            const { data: clienteData } = await Promise.race([clientePromise, timeoutPromise]) as any;
+            
+            if (clienteData) {
+              console.log('✅ [AuthContext] Datos de cliente sincronizados desde Firestore');
+              await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(clienteData));
+              setUser(clienteData as User);
+            } else {
+              const comercioPromise = getDocument('comercios', firebaseUser.uid);
+              const { data: comercioData } = await Promise.race([comercioPromise, timeoutPromise]) as any;
+              
+              if (comercioData) {
+                console.log('✅ [AuthContext] Datos de comercio sincronizados desde Firestore');
+                await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(comercioData));
+                setUser(comercioData as User);
+              }
+            }
+          } catch {
+            console.log('⚠️ [AuthContext] Timeout al sincronizar con Firestore, usando datos locales');
+          }
         } else {
-          console.log('ℹ️ No hay usuario guardado');
+          console.log('ℹ️ [AuthContext] No hay sesión activa en Firebase');
         }
+      } catch (firebaseError) {
+        console.log('⚠️ [AuthContext] Error con Firebase, continuando con datos locales:', firebaseError);
       }
       
       const biometricEnabled = await AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY);
       setIsBiometricEnabled(biometricEnabled === 'true');
+      
+      console.log('✅ [AuthContext] Carga de usuario completada');
     } catch (error) {
-      console.error('❌ Error loading user:', error);
+      console.error('❌ [AuthContext] Error crítico loading user:', error);
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +92,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, []);
 
   useEffect(() => {
-    console.log('🔄 Configurando listener de autenticación de Firebase...');
-    const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+    console.log('🔄 [AuthContext] Configurando listener de Firebase...');
+    try {
+      const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
       if (firebaseUser && !user) {
         console.log('🔔 Cambio de autenticación detectado:', firebaseUser.uid);
         
@@ -100,10 +118,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
     });
 
-    return () => {
-      console.log('🔄 Desuscribiendo listener de Firebase');
-      unsubscribe();
-    };
+      return () => {
+        console.log('🔄 [AuthContext] Desuscribiendo listener de Firebase');
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('❌ [AuthContext] Error configurando listener Firebase:', error);
+    }
   }, [user]);
 
   const checkBiometricAvailability = async () => {

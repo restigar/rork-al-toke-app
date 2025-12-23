@@ -20,8 +20,9 @@ let auth: Auth;
 let storage: FirebaseStorage;
 
 if (!getApps().length) {
+  console.log('🔥 [Firebase] Inicializando Firebase App...');
   app = initializeApp(firebaseConfig);
-  console.log('✅ Firebase App inicializado');
+  console.log('✅ [Firebase] App inicializado');
   
   if (Platform.OS === 'web') {
     db = initializeFirestore(app, {
@@ -34,18 +35,21 @@ if (!getApps().length) {
     });
   }
   
+  console.log('✅ [Firebase] Firestore inicializado');
+  
   enableNetwork(db)
-    .then(() => console.log('✅ Firestore network habilitada'))
-    .catch((err) => console.log('⚠️ Firestore network:', err.message));
+    .then(() => console.log('✅ [Firebase] Network habilitada'))
+    .catch((err) => console.log('⚠️ [Firebase] Network warning:', err.message));
   
   auth = getAuth(app);
   storage = getStorage(app);
-  console.log('✅ Firebase servicios inicializados (Auth, Firestore, Storage)');
+  console.log('✅ [Firebase] Todos los servicios listos (Auth, Firestore, Storage)');
 } else {
   app = getApp();
   db = getFirestore(app);
   auth = getAuth(app);
   storage = getStorage(app);
+  console.log('✅ [Firebase] Usando instancia existente');
 }
 
 export { auth, db, storage };

@@ -33,7 +33,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   useEffect(() => {
-    SplashScreen.hideAsync();
+    console.log('🚀 RootLayout montado, iniciando aplicación...');
+    const timer = setTimeout(() => {
+      console.log('✅ Ocultando splash screen');
+      SplashScreen.hideAsync();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
