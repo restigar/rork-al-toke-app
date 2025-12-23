@@ -195,8 +195,20 @@ export default function ClientePerfil() {
     }
   };
 
+  const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   const abrirMapaComerciosCercanos = async () => {
-    console.log('🗺️ Intentando abrir mapa con todos los comercios registrados');
+    console.log('🗺️ Intentando abrir mapa con comercios cercanos');
     console.log('📊 Total de comercios:', comercios.length);
     
     const comerciosConUbicacion = comercios.filter(c => c.ubicacion);
@@ -214,11 +226,41 @@ export default function ClientePerfil() {
         if (status === 'granted') {
           userLocation = await Location.getCurrentPositionAsync({});
           console.log('📍 Ubicación del usuario obtenida:', userLocation.coords);
+        } else {
+          Alert.alert('Permiso requerido', 'Necesitamos acceso a tu ubicación para mostrarte los comercios más cercanos');
+          return;
         }
       }
 
-      if (comerciosConUbicacion.length === 1) {
-        const comercio = comerciosConUbicacion[0];
+      type ComercioConDistancia = typeof comerciosConUbicacion[0] & { distancia: number };
+      let comerciosOrdenados: (typeof comerciosConUbicacion[0] | ComercioConDistancia)[] = comerciosConUbicacion;
+      
+      if (userLocation) {
+        const comerciosConDist: ComercioConDistancia[] = comerciosConUbicacion
+          .map(c => ({
+            ...c,
+            distancia: calcularDistancia(
+              userLocation.coords.latitude,
+              userLocation.coords.longitude,
+              c.ubicacion!.latitud,
+              c.ubicacion!.longitud
+            )
+          }));
+        
+        comerciosOrdenados = comerciosConDist.sort((a, b) => a.distancia - b.distancia);
+        
+        console.log('📏 Comercios ordenados por distancia');
+        console.log('🔝 Los 5 más cercanos:', 
+          comerciosConDist.slice(0, 5).map((c, i) => 
+            `${i + 1}. ${c.nombre} (${c.distancia.toFixed(2)}km)`
+          ).join(', ')
+        );
+      }
+
+      const comerciosCercanos = comerciosOrdenados.slice(0, 20);
+
+      if (comerciosCercanos.length === 1) {
+        const comercio = comerciosCercanos[0];
         const { latitud, longitud } = comercio.ubicacion!;
         const nombreEncoded = encodeURIComponent(comercio.nombre);
         const url = `https://www.google.com/maps/search/?api=1&query=${nombreEncoded}+${latitud},${longitud}`;
@@ -229,13 +271,12 @@ export default function ClientePerfil() {
 
       const centerLat = userLocation
         ? userLocation.coords.latitude
-        : comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.latitud, 0) / comerciosConUbicacion.length;
+        : comerciosCercanos.reduce((sum, c) => sum + c.ubicacion!.latitud, 0) / comerciosCercanos.length;
       const centerLng = userLocation
         ? userLocation.coords.longitude
-        : comerciosConUbicacion.reduce((sum, c) => sum + c.ubicacion!.longitud, 0) / comerciosConUbicacion.length;
+        : comerciosCercanos.reduce((sum, c) => sum + c.ubicacion!.longitud, 0) / comerciosCercanos.length;
 
-      const markers = comerciosConUbicacion
-        .slice(0, 20)
+      const markers = comerciosCercanos
         .map((c) => {
           const nombreEncoded = encodeURIComponent(c.nombre.substring(0, 20));
           return `&markers=color:red%7Clabel:${nombreEncoded.substring(0, 1)}%7C${c.ubicacion!.latitud},${c.ubicacion!.longitud}`;
@@ -244,9 +285,8 @@ export default function ClientePerfil() {
 
       const url = `https://www.google.com/maps/search/?api=1&query=${centerLat},${centerLng}${markers}`;
       
-      console.log('✅ Abriendo mapa con múltiples comercios:', comerciosConUbicacion.length);
-      console.log('📍 Comercios en el mapa:', comerciosConUbicacion.slice(0, 20).map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
-      console.log('🔗 URL del mapa:', url);
+      console.log('✅ Abriendo mapa con los 20 comercios más cercanos');
+      console.log('📍 Comercios en el mapa:', comerciosCercanos.map((c, i) => `${i + 1}. ${c.nombre}`).join(', '));
       
       Linking.openURL(url).catch(error => {
         console.error('❌ Error al abrir el mapa:', error);

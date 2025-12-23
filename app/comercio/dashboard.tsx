@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, Image, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -17,10 +17,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import type { Comercio } from '../../types';
+import LocationPermissionModal from '../../components/LocationPermissionModal';
 
 export default function ComercioDashboard() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, showLocationPrompt, requestLocationPermission, skipLocationPermission } = useAuth();
   const { getComercio } = useBusiness();
   const comercio = getComercio(user?.id || '') as Comercio;
 
@@ -147,6 +148,12 @@ export default function ComercioDashboard() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <LocationPermissionModal
+        visible={showLocationPrompt}
+        onAllow={requestLocationPermission}
+        onSkip={skipLocationPermission}
+      />
     </SafeAreaView>
   );
 }
