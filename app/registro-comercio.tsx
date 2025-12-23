@@ -99,7 +99,7 @@ export default function RegistroComercio() {
       const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Comercio',
         email: firebaseUser.email || '',
-        phone: newComercio.telefono || 'N/A',
+        phone: 'N/A',
         status: 'Activo',
       });
       
@@ -182,7 +182,7 @@ export default function RegistroComercio() {
       const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Comercio',
         email: firebaseUser.email || '',
-        phone: newComercio.telefono || 'N/A',
+        phone: 'N/A',
         status: 'Activo',
       });
       

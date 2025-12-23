@@ -97,6 +97,7 @@ export default function RegistroCliente() {
       const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Usuario',
         email: firebaseUser.email || '',
+        phone: 'N/A',
         role: 'Cliente',
         status: 'Activo',
         city: 'N/A',
@@ -179,6 +180,7 @@ export default function RegistroCliente() {
       const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
         name: firebaseUser.displayName || 'Usuario',
         email: firebaseUser.email || '',
+        phone: 'N/A',
         role: 'Cliente',
         status: 'Activo',
         city: 'N/A',
@@ -277,6 +279,7 @@ export default function RegistroCliente() {
       const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
         name,
         email,
+        phone: 'N/A',
         role: 'Cliente',
         status: 'Activo',
         city: 'N/A',
