@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore, enableNetwork } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, Firestore, enableNetwork, disableNetwork, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
@@ -26,20 +26,30 @@ if (!getApps().length) {
   
   if (Platform.OS === 'web') {
     db = initializeFirestore(app, {
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
       experimentalForceLongPolling: true,
     });
   } else {
     db = initializeFirestore(app, {
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+      experimentalForceLongPolling: false,
     });
   }
   
   console.log('✅ [Firebase] Firestore inicializado');
   
-  enableNetwork(db)
-    .then(() => console.log('✅ [Firebase] Network habilitada'))
-    .catch((err) => console.log('⚠️ [Firebase] Network warning:', err.message));
+  if (Platform.OS !== 'web') {
+    disableNetwork(db)
+      .then(() => {
+        console.log('🔄 [Firebase] Cache deshabilitada temporalmente');
+        return enableNetwork(db);
+      })
+      .then(() => console.log('✅ [Firebase] Network habilitada - Modo online forzado'))
+      .catch((err) => console.log('⚠️ [Firebase] Network warning:', err.message));
+  } else {
+    enableNetwork(db)
+      .then(() => console.log('✅ [Firebase] Network habilitada'))
+      .catch((err) => console.log('⚠️ [Firebase] Network warning:', err.message));
+  }
   
   auth = getAuth(app);
   storage = getStorage(app);
