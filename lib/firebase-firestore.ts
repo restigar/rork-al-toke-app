@@ -21,20 +21,39 @@ export const createDocument = async <T extends DocumentData>(
   docId: string, 
   data: T
 ) => {
+  console.log('🔥🔥🔥 ===== INICIANDO ESCRITURA EN FIRESTORE ===== 🔥🔥🔥');
+  console.log(`📝 Colección: ${collectionName}`);
+  console.log(`📝 ID del documento: ${docId}`);
+  console.log(`📝 Datos a guardar:`, JSON.stringify(data, null, 2));
+  
   try {
-    console.log(`📝 Intentando crear documento en ${collectionName}:`, docId);
     const docRef = doc(db, collectionName, docId);
-    await setDoc(docRef, {
+    console.log('✅ Referencia al documento creada');
+    
+    const dataToSave = {
       ...data,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    });
-    console.log(`✅ Documento creado exitosamente en ${collectionName}:`, docId);
+    };
+    console.log('📦 Datos preparados para guardar:', JSON.stringify(dataToSave, null, 2));
+    
+    console.log('⏳ Ejecutando setDoc...');
+    await setDoc(docRef, dataToSave);
+    console.log('✅✅✅ setDoc COMPLETADO EXITOSAMENTE ✅✅✅');
+    
+    console.log(`🎉🎉🎉 ÉXITO: Documento creado en Firestore en la colección /${collectionName} con ID: ${docId}`);
+    console.log('🔥🔥🔥 ===== ESCRITURA EXITOSA ===== 🔥🔥🔥');
+    
     return { success: true, error: null };
   } catch (error: any) {
-    console.error(`❌ Error al crear documento en ${collectionName}:`, error);
+    console.error('🚨🚨🚨 ===== ERROR CRÍTICO EN FIRESTORE ===== 🚨🚨🚨');
+    console.error(`❌ Error al crear documento en ${collectionName}`);
+    console.error(`❌ ID del documento: ${docId}`);
+    console.error(`❌ Error completo:`, error);
     console.error(`❌ Error code:`, error.code);
     console.error(`❌ Error message:`, error.message);
+    console.error(`❌ Error stack:`, error.stack);
+    console.error('🚨🚨🚨 ===== FIN DEL ERROR ===== 🚨🚨🚨');
     
     let friendlyMessage = error.message;
     if (error.code === 'unavailable' || error.message.includes('offline')) {
@@ -43,7 +62,7 @@ export const createDocument = async <T extends DocumentData>(
       friendlyMessage = 'No tienes permisos para realizar esta acción.';
     }
     
-    return { success: false, error: friendlyMessage };
+    return { success: false, error: `${friendlyMessage} (Código: ${error.code || 'DESCONOCIDO'})` };
   }
 };
 

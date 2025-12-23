@@ -105,6 +105,11 @@ export default function RegistroCliente() {
       
       if (!usersSuccess || usersError) {
         console.error('❌ Error al crear documento en users:', usersError);
+        Alert.alert(
+          '⚠️ ADVERTENCIA',
+          `Registro exitoso en /clientes pero FALLÓ en /users (panel admin):\n\n${usersError}`,
+          [{ text: 'OK' }]
+        );
       } else {
         console.log('✅ Documento creado exitosamente en users');
       }
@@ -182,6 +187,11 @@ export default function RegistroCliente() {
       
       if (!usersSuccess || usersError) {
         console.error('❌ Error al crear documento en users:', usersError);
+        Alert.alert(
+          '⚠️ ADVERTENCIA',
+          `Registro exitoso en /clientes pero FALLÓ en /users (panel admin):\n\n${usersError}`,
+          [{ text: 'OK' }]
+        );
       } else {
         console.log('✅ Documento creado exitosamente en users');
       }
@@ -248,10 +258,20 @@ export default function RegistroCliente() {
       
       if (!firestoreSuccess || firestoreError) {
         console.error('❌ Error guardando datos del cliente:', firestoreError);
-        Alert.alert('Error', `Error al guardar los datos del cliente: ${firestoreError || 'Error desconocido'}`);
+        Alert.alert(
+          '🚨 ERROR CRÍTICO FIRESTORE',
+          `FALLO AL GUARDAR EN /clientes:\n\n${firestoreError || 'Error desconocido'}\n\nUID: ${firebaseUser.uid}\n\nPor favor captura esta pantalla y contacta a soporte.`,
+          [{ text: 'Entendido' }]
+        );
         setIsRegistering(false);
         return;
       }
+
+      Alert.alert(
+        '✅ ÉXITO - Paso 1/2',
+        `Documento creado en /clientes\nUID: ${firebaseUser.uid}`,
+        [{ text: 'Continuar' }]
+      );
 
       console.log('✅ Documento creado en clientes. Creando documento en users para panel admin...');
       const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
@@ -265,8 +285,18 @@ export default function RegistroCliente() {
       
       if (!usersSuccess || usersError) {
         console.error('❌ Error al crear documento en users:', usersError);
+        Alert.alert(
+          '🚨 ERROR EN PANEL ADMIN',
+          `FALLO AL GUARDAR EN /users:\n\n${usersError}\n\nEl cliente se guardó en /clientes pero NO en /users (panel admin).\n\nUID: ${firebaseUser.uid}`,
+          [{ text: 'Entendido' }]
+        );
       } else {
         console.log('✅ Documento creado exitosamente en users para panel admin');
+        Alert.alert(
+          '✅ ÉXITO COMPLETO - 2/2',
+          `Documento creado en /users (Panel Admin)\nUID: ${firebaseUser.uid}\n\n¡El usuario estará visible en el panel de administración!`,
+          [{ text: 'Perfecto' }]
+        );
       }
       
       console.log('✅ Proceso de registro completado. Iniciando login...');
