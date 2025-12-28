@@ -70,19 +70,16 @@ export default function LandingPage() {
         return;
       }
 
-      const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
-      if (clienteData) {
-        await login(clienteData as Cliente);
+      const { data: userData } = await getDocument('users', firebaseUser.uid);
+      if (userData) {
+        await login(userData as Cliente | Comercio);
         setShowLoginModal(false);
-        router.replace('/cliente/perfil');
-        return;
-      }
-
-      const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
-      if (comercioData) {
-        await login(comercioData as Comercio);
-        setShowLoginModal(false);
-        router.replace('/comercio/dashboard');
+        
+        if (userData.type === 'cliente') {
+          router.replace('/cliente/perfil');
+        } else if (userData.type === 'comercio') {
+          router.replace('/comercio/dashboard');
+        }
         return;
       }
 
@@ -101,19 +98,16 @@ export default function LandingPage() {
         return;
       }
 
-      const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
-      if (clienteData) {
-        await login(clienteData as Cliente);
+      const { data: userData } = await getDocument('users', firebaseUser.uid);
+      if (userData) {
+        await login(userData as Cliente | Comercio);
         setShowLoginModal(false);
-        router.replace('/cliente/perfil');
-        return;
-      }
-
-      const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
-      if (comercioData) {
-        await login(comercioData as Comercio);
-        setShowLoginModal(false);
-        router.replace('/comercio/dashboard');
+        
+        if (userData.type === 'cliente') {
+          router.replace('/cliente/perfil');
+        } else if (userData.type === 'comercio') {
+          router.replace('/comercio/dashboard');
+        }
         return;
       }
 
@@ -151,29 +145,20 @@ export default function LandingPage() {
         return;
       }
 
-      const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
-      if (clienteData) {
-        await login(clienteData as Cliente, { email, password, type: 'cliente' });
+      const { data: userData } = await getDocument('users', firebaseUser.uid);
+      if (userData) {
+        await login(userData as Cliente | Comercio, { email, password, type: userData.type });
         setShowLoginModal(false);
         
         if (isBiometricAvailable && !isBiometricEnabled) {
           setTimeout(() => offerBiometricSetup(), 500);
         }
         
-        router.replace('/cliente/perfil');
-        return;
-      }
-
-      const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
-      if (comercioData) {
-        await login(comercioData as Comercio, { email, password, type: 'comercio' });
-        setShowLoginModal(false);
-        
-        if (isBiometricAvailable && !isBiometricEnabled) {
-          setTimeout(() => offerBiometricSetup(), 500);
+        if (userData.type === 'cliente') {
+          router.replace('/cliente/perfil');
+        } else if (userData.type === 'comercio') {
+          router.replace('/comercio/dashboard');
         }
-        
-        router.replace('/comercio/dashboard');
         return;
       }
 
@@ -214,19 +199,16 @@ export default function LandingPage() {
             return;
           }
 
-          const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
-          if (clienteData) {
-            await login(clienteData as Cliente);
+          const { data: userData } = await getDocument('users', firebaseUser.uid);
+          if (userData) {
+            await login(userData as Cliente | Comercio);
             setShowLoginModal(false);
-            router.replace('/cliente/perfil');
-            return;
-          }
-
-          const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
-          if (comercioData) {
-            await login(comercioData as Comercio);
-            setShowLoginModal(false);
-            router.replace('/comercio/dashboard');
+            
+            if (userData.type === 'cliente') {
+              router.replace('/cliente/perfil');
+            } else if (userData.type === 'comercio') {
+              router.replace('/comercio/dashboard');
+            }
             return;
           }
         }
