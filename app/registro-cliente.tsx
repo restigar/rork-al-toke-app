@@ -261,12 +261,6 @@ export default function RegistroCliente() {
       }
 
       console.log('✅ Documento creado exitosamente en /users con role: Cliente');
-      Alert.alert(
-        '✅ ÉXITO',
-        `Documento creado en /users\nRole: Cliente\nUID: ${firebaseUser.uid}\n\n¡El usuario estará visible en el panel de administración!`,
-        [{ text: 'Perfecto' }]
-      );
-      
       console.log('✅ Proceso de registro completado. Iniciando login...');
       
       try {

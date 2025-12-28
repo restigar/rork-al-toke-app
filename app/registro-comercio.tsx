@@ -260,12 +260,6 @@ export default function RegistroComercio() {
       }
 
       console.log('✅ Documento creado exitosamente en /users con role: Comercio');
-      Alert.alert(
-        '✅ ÉXITO',
-        `Documento creado en /users\nRole: Comercio\nUID: ${firebaseUser.uid}\n\n¡El comercio estará visible en el panel de administración!`,
-        [{ text: 'Perfecto' }]
-      );
-      
       console.log('✅ Proceso de registro completado. Iniciando login...');
       
       try {
