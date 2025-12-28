@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, Check } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
@@ -20,6 +20,7 @@ export default function RegistroComercio() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
 
   const offerBiometricSetup = () => {
     Alert.alert(
@@ -220,6 +221,11 @@ export default function RegistroComercio() {
       return;
     }
 
+    if (!acceptedTerms) {
+      Alert.alert('Error', 'Debes aceptar los términos y condiciones para continuar');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
@@ -400,6 +406,33 @@ export default function RegistroComercio() {
             keyboardType="phone-pad"
           />
 
+          <View style={styles.termsContainer}>
+            <TouchableOpacity 
+              style={styles.checkbox}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+            >
+              {acceptedTerms && (
+                <Check size={18} color="#1a2332" strokeWidth={3} />
+              )}
+            </TouchableOpacity>
+            <Text style={styles.termsText}>
+              He leído y acepto los{' '}
+              <Text 
+                style={styles.termsLink}
+                onPress={() => router.push('/terminos-condiciones')}
+              >
+                Términos y Condiciones
+              </Text>
+              {' '}y la{' '}
+              <Text 
+                style={styles.termsLink}
+                onPress={() => router.push('/politica-privacidad')}
+              >
+                Política de Privacidad
+              </Text>
+            </Text>
+          </View>
+
           <TouchableOpacity 
             style={[styles.button, isRegistering && styles.buttonDisabled]} 
             onPress={handleRegister}
@@ -564,5 +597,33 @@ const styles = StyleSheet.create({
   socialIcon: {
     width: 24,
     height: 24,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#1a2332',
+    borderRadius: 6,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#1a2332',
+    fontWeight: '600' as const,
+    textDecorationLine: 'underline',
   },
 });
