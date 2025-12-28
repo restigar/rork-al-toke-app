@@ -60,7 +60,7 @@ export default function RegistroComercio() {
         return;
       }
 
-      const { data: existingComercio } = await getDocument('comercios', firebaseUser.uid);
+      const { data: existingComercio } = await getDocument('users', firebaseUser.uid);
       
       if (existingComercio) {
         try {
@@ -88,32 +88,22 @@ export default function RegistroComercio() {
         fotoPerfil: firebaseUser.photoURL || undefined,
       };
 
-      const { success: createSuccess, error: createError } = await createDocument('comercios', firebaseUser.uid, newComercio);
-      
-      if (!createSuccess || createError) {
-        setIsRegistering(false);
-        Alert.alert('Error', 'Error al guardar datos del comercio');
-        return;
-      }
-
-      console.log('📝 Creando documento en stores para panel admin...');
-      const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
-        name: firebaseUser.displayName || 'Comercio',
-        email: firebaseUser.email || '',
-        phone: 'N/A',
+      console.log('📝 Creando documento en users con role: Comercio...');
+      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
+        ...newComercio,
+        role: 'Comercio',
         status: 'Activo',
+        phone: 'N/A',
       });
       
-      if (!storesSuccess || storesError) {
-        console.error('❌ Error al crear documento en stores:', storesError);
-        Alert.alert(
-          '⚠️ ADVERTENCIA',
-          `Registro exitoso en /comercios pero FALLÓ en /stores (panel admin):\n\n${storesError}`,
-          [{ text: 'OK' }]
-        );
-      } else {
-        console.log('✅ Documento creado exitosamente en stores');
+      if (!usersSuccess || usersError) {
+        setIsRegistering(false);
+        console.error('❌ Error al crear documento en users:', usersError);
+        Alert.alert('Error', `Error al guardar datos del comercio: ${usersError}`);
+        return;
       }
+      
+      console.log('✅ Documento creado exitosamente en /users con role: Comercio');
       
       try {
         await saveComercio(newComercio);
@@ -143,7 +133,7 @@ export default function RegistroComercio() {
         return;
       }
 
-      const { data: existingComercio } = await getDocument('comercios', firebaseUser.uid);
+      const { data: existingComercio } = await getDocument('users', firebaseUser.uid);
       
       if (existingComercio) {
         try {
@@ -171,32 +161,22 @@ export default function RegistroComercio() {
         fotoPerfil: firebaseUser.photoURL || undefined,
       };
 
-      const { success: createSuccess, error: createError } = await createDocument('comercios', firebaseUser.uid, newComercio);
-      
-      if (!createSuccess || createError) {
-        setIsRegistering(false);
-        Alert.alert('Error', 'Error al guardar datos del comercio');
-        return;
-      }
-
-      console.log('📝 Creando documento en stores para panel admin...');
-      const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
-        name: firebaseUser.displayName || 'Comercio',
-        email: firebaseUser.email || '',
-        phone: 'N/A',
+      console.log('📝 Creando documento en users con role: Comercio...');
+      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
+        ...newComercio,
+        role: 'Comercio',
         status: 'Activo',
+        phone: 'N/A',
       });
       
-      if (!storesSuccess || storesError) {
-        console.error('❌ Error al crear documento en stores:', storesError);
-        Alert.alert(
-          '⚠️ ADVERTENCIA',
-          `Registro exitoso en /comercios pero FALLÓ en /stores (panel admin):\n\n${storesError}`,
-          [{ text: 'OK' }]
-        );
-      } else {
-        console.log('✅ Documento creado exitosamente en stores');
+      if (!usersSuccess || usersError) {
+        setIsRegistering(false);
+        console.error('❌ Error al crear documento en users:', usersError);
+        Alert.alert('Error', `Error al guardar datos del comercio: ${usersError}`);
+        return;
       }
+      
+      console.log('✅ Documento creado exitosamente en /users con role: Comercio');
       
       try {
         await saveComercio(newComercio);
@@ -260,48 +240,31 @@ export default function RegistroComercio() {
         telefono,
       };
 
-      const { success: firestoreSuccess, error: firestoreError } = await createDocument('comercios', firebaseUser.uid, newComercio);
+      console.log('📝 Creando documento en Firestore en /users con role: Comercio:', firebaseUser.uid);
+      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
+        ...newComercio,
+        role: 'Comercio',
+        status: 'Activo',
+        phone: telefono || 'N/A',
+      });
       
-      if (!firestoreSuccess || firestoreError) {
-        console.error('Error guardando datos del comercio:', firestoreError);
+      if (!usersSuccess || usersError) {
+        console.error('Error guardando datos del comercio:', usersError);
         Alert.alert(
           '🚨 ERROR CRÍTICO FIRESTORE',
-          `FALLO AL GUARDAR EN /comercios:\n\n${firestoreError || 'Error desconocido'}\n\nUID: ${firebaseUser.uid}\n\nPor favor captura esta pantalla y contacta a soporte.`,
+          `FALLO AL GUARDAR EN /users:\n\n${usersError || 'Error desconocido'}\n\nUID: ${firebaseUser.uid}\n\nPor favor captura esta pantalla y contacta a soporte.`,
           [{ text: 'Entendido' }]
         );
         setIsRegistering(false);
         return;
       }
 
+      console.log('✅ Documento creado exitosamente en /users con role: Comercio');
       Alert.alert(
-        '✅ ÉXITO - Paso 1/2',
-        `Documento creado en /comercios\nUID: ${firebaseUser.uid}`,
-        [{ text: 'Continuar' }]
+        '✅ ÉXITO',
+        `Documento creado en /users\nRole: Comercio\nUID: ${firebaseUser.uid}\n\n¡El comercio estará visible en el panel de administración!`,
+        [{ text: 'Perfecto' }]
       );
-
-      console.log('✅ Documento creado en comercios. Creando documento en stores para panel admin...');
-      const { success: storesSuccess, error: storesError } = await createDocument('stores', firebaseUser.uid, {
-        name: nombre,
-        email,
-        phone: telefono || 'N/A',
-        status: 'Activo',
-      });
-      
-      if (!storesSuccess || storesError) {
-        console.error('❌ Error al crear documento en stores:', storesError);
-        Alert.alert(
-          '🚨 ERROR EN PANEL ADMIN',
-          `FALLO AL GUARDAR EN /stores:\n\n${storesError}\n\nEl comercio se guardó en /comercios pero NO en /stores (panel admin).\n\nUID: ${firebaseUser.uid}`,
-          [{ text: 'Entendido' }]
-        );
-      } else {
-        console.log('✅ Documento creado exitosamente en stores para panel admin');
-        Alert.alert(
-          '✅ ÉXITO COMPLETO - 2/2',
-          `Documento creado en /stores (Panel Admin)\nUID: ${firebaseUser.uid}\n\n¡El comercio estará visible en el panel de administración!`,
-          [{ text: 'Perfecto' }]
-        );
-      }
       
       console.log('✅ Proceso de registro completado. Iniciando login...');
       

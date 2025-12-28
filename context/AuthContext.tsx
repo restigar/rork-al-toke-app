@@ -45,22 +45,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           );
           
           try {
-            const clientePromise = getDocument('clientes', firebaseUser.uid);
-            const { data: clienteData } = await Promise.race([clientePromise, timeoutPromise]) as any;
+            const userPromise = getDocument('users', firebaseUser.uid);
+            const { data: userData } = await Promise.race([userPromise, timeoutPromise]) as any;
             
-            if (clienteData) {
-              console.log('✅ [AuthContext] Datos de cliente sincronizados desde Firestore');
-              await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(clienteData));
-              setUser(clienteData as User);
-            } else {
-              const comercioPromise = getDocument('comercios', firebaseUser.uid);
-              const { data: comercioData } = await Promise.race([comercioPromise, timeoutPromise]) as any;
-              
-              if (comercioData) {
-                console.log('✅ [AuthContext] Datos de comercio sincronizados desde Firestore');
-                await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(comercioData));
-                setUser(comercioData as User);
-              }
+            if (userData) {
+              console.log('✅ [AuthContext] Datos de usuario sincronizados desde Firestore');
+              await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+              setUser(userData as User);
             }
           } catch {
             console.log('⚠️ [AuthContext] Timeout al sincronizar con Firestore, usando datos locales');
@@ -98,19 +89,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       if (firebaseUser && !user) {
         console.log('🔔 Cambio de autenticación detectado:', firebaseUser.uid);
         
-        const { data: clienteData } = await getDocument('clientes', firebaseUser.uid);
-        if (clienteData) {
-          console.log('✅ Auto-login con datos de cliente');
-          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(clienteData));
-          setUser(clienteData as User);
-          return;
-        }
-        
-        const { data: comercioData } = await getDocument('comercios', firebaseUser.uid);
-        if (comercioData) {
-          console.log('✅ Auto-login con datos de comercio');
-          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(comercioData));
-          setUser(comercioData as User);
+        const { data: userData } = await getDocument('users', firebaseUser.uid);
+        if (userData) {
+          console.log('✅ Auto-login con datos de usuario desde /users');
+          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+          setUser(userData as User);
           return;
         }
       } else if (!firebaseUser && user) {
