@@ -147,7 +147,7 @@ export default function TerminosCondiciones() {
         <Text style={styles.paragraph}>
           Si tiene preguntas sobre estos Términos y Condiciones, puede contactarnos a través de:
         </Text>
-        <Text style={styles.bulletPoint}>• Email: soporte@altoke.app</Text>
+        <Text style={styles.bulletPoint}>• Email: info@al-toke.com</Text>
         <Text style={styles.bulletPoint}>• Desde la aplicación: Perfil → Soporte</Text>
 
         <View style={styles.footer}>
