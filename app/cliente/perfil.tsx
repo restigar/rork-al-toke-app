@@ -38,16 +38,22 @@ export default function ClientePerfil() {
   const handleSearch = () => {
     if (searchQuery.trim()) {
       if (searchMode === 'ofertas') {
-        router.push(`/cliente/buscar-ofertas?q=${encodeURIComponent(searchQuery)}`);
+        router.push({
+          pathname: "/cliente/buscar-ofertas" as any,
+          params: { q: searchQuery }
+        });
       } else {
-        router.push(`/cliente/buscar-comercios?q=${encodeURIComponent(searchQuery)}`);
+        router.push({
+          pathname: "/cliente/buscar-comercios" as any,
+          params: { q: searchQuery }
+        });
       }
     }
   };
 
   const handleLogout = async () => {
     if (isComercio) {
-      router.push('/comercio/dashboard');
+      router.push('/comercio/dashboard' as any);
     } else {
       await logout();
       router.replace('/');
@@ -173,7 +179,10 @@ export default function ClientePerfil() {
       
       if (searchMode === 'ofertas') {
         setTimeout(() => {
-          router.push(`/cliente/buscar-ofertas?q=${encodeURIComponent(data.text)}`);
+          router.push({
+            pathname: "/cliente/buscar-ofertas" as any,
+            params: { q: data.text }
+          });
         }, 300);
       } else {
         setTimeout(() => {
@@ -341,7 +350,7 @@ export default function ClientePerfil() {
                 <>
                   <TouchableOpacity
                     style={styles.iconButton}
-                    onPress={() => router.push('/cliente/editar-perfil')}
+                    onPress={() => router.push('/cliente/editar-perfil' as any)}
                   >
                     <Settings size={22} color="#fff" />
                   </TouchableOpacity>
@@ -394,7 +403,7 @@ export default function ClientePerfil() {
             <View style={styles.ofertasButtons}>
               <TouchableOpacity
                 style={styles.ofertasLink}
-                onPress={() => router.push('/cliente/ofertas-del-dia')}
+                onPress={() => router.push('/cliente/ofertas-del-dia' as any)}
               >
                 <Calendar size={18} color="#9dd9c1" />
                 <Text style={styles.ofertasLinkText}>Ver Ofertas del Día</Text>
@@ -402,7 +411,7 @@ export default function ClientePerfil() {
               
               <TouchableOpacity
                 style={styles.cargarOfertaButton}
-                onPress={() => router.push('/cliente/cargar-oferta-dia')}
+                onPress={() => router.push('/cliente/cargar-oferta-dia' as any)}
               >
                 <Tag size={18} color="#fff" />
                 <Text style={styles.cargarOfertaButtonText}>Cargar Oferta del Día</Text>

@@ -76,9 +76,9 @@ export default function LandingPage() {
         setShowLoginModal(false);
         
         if (userData.type === 'cliente') {
-          router.replace('/cliente/perfil');
+          router.replace('/cliente/perfil' as any);
         } else if (userData.type === 'comercio') {
-          router.replace('/comercio/dashboard');
+          router.replace('/comercio/dashboard' as any);
         }
         return;
       }
@@ -104,9 +104,9 @@ export default function LandingPage() {
         setShowLoginModal(false);
         
         if (userData.type === 'cliente') {
-          router.replace('/cliente/perfil');
+          router.replace('/cliente/perfil' as any);
         } else if (userData.type === 'comercio') {
-          router.replace('/comercio/dashboard');
+          router.replace('/comercio/dashboard' as any);
         }
         return;
       }
@@ -155,9 +155,9 @@ export default function LandingPage() {
         }
         
         if (userData.type === 'cliente') {
-          router.replace('/cliente/perfil');
+          router.replace('/cliente/perfil' as any);
         } else if (userData.type === 'comercio') {
-          router.replace('/comercio/dashboard');
+          router.replace('/comercio/dashboard' as any);
         }
         return;
       }
@@ -253,7 +253,7 @@ export default function LandingPage() {
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={[styles.registerButton, styles.clienteButton]}
-              onPress={() => router.push('/registro-cliente')}
+              onPress={() => router.push('/registro-cliente' as any)}
             >
               <User size={32} color="#fff" />
               <Text style={styles.registerButtonText}>{t('client')}</Text>
@@ -261,7 +261,7 @@ export default function LandingPage() {
 
             <TouchableOpacity
               style={[styles.registerButton, styles.comercioButton]}
-              onPress={() => router.push('/registro-comercio')}
+              onPress={() => router.push('/registro-comercio' as any)}
             >
               <Store size={32} color="#fff" />
               <Text style={styles.registerButtonText}>{t('business')}</Text>
@@ -292,11 +292,11 @@ export default function LandingPage() {
           </View>
 
           <View style={styles.legalLinks}>
-            <TouchableOpacity onPress={() => router.push('/terminos-condiciones')}>
+            <TouchableOpacity onPress={() => router.push('/terminos-condiciones' as any)}>
               <Text style={styles.legalLinkText}>{t('terms')}</Text>
             </TouchableOpacity>
             <Text style={styles.legalSeparator}>•</Text>
-            <TouchableOpacity onPress={() => router.push('/politica-privacidad')}>
+            <TouchableOpacity onPress={() => router.push('/politica-privacidad' as any)}>
               <Text style={styles.legalLinkText}>{t('privacy')}</Text>
             </TouchableOpacity>
           </View>

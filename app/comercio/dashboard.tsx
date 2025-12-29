@@ -31,7 +31,7 @@ export default function ComercioDashboard() {
   };
 
   const toggleDeTurno = () => {
-    router.push('/comercio/marcar-turno');
+    router.push('/comercio/marcar-turno' as any);
   };
 
   const isFarmacia = comercio?.rubro === 'Salud y Cuidado Personal' && 
@@ -44,7 +44,7 @@ export default function ComercioDashboard() {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => router.push('/comercio/editar-perfil')}
+            onPress={() => router.push('/comercio/editar-perfil' as any)}
           >
             <Settings size={22} color="#fff" />
           </TouchableOpacity>
@@ -109,7 +109,7 @@ export default function ComercioDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => router.push('/comercio/cargar-oferta')}
+            onPress={() => router.push('/comercio/cargar-oferta' as any)}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#dcfce7' }]}>
               <Tag size={32} color="#16a34a" />
@@ -119,7 +119,7 @@ export default function ComercioDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => router.push('/comercio/informacion')}
+            onPress={() => router.push('/comercio/informacion' as any)}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#dbeafe' }]}>
               <FileText size={32} color="#2563eb" />
@@ -129,7 +129,7 @@ export default function ComercioDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => router.push('/comercio/ofertas-activas')}
+            onPress={() => router.push('/comercio/ofertas-activas' as any)}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#fef3c7' }]}>
               <List size={32} color="#f59e0b" />
@@ -139,7 +139,7 @@ export default function ComercioDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => router.push('/cliente/perfil')}
+            onPress={() => router.push('/cliente/perfil' as any)}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#e9d5ff' }]}>
               <Eye size={32} color="#9333ea" />
