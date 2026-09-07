@@ -13,6 +13,7 @@ import {
   Timestamp,
   QueryConstraint,
   DocumentData,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -143,6 +144,31 @@ export const deleteDocument = async (collectionName: string, docId: string) => {
   } catch (error: any) {
     console.error(`❌ Error al eliminar documento de ${collectionName}:`, error.message);
     return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Incrementa el contador secuencial compartido en Firestore (colección `counters`)
+ * de forma transaccional, igual que el panel admin y la app iOS.
+ * Devuelve null si falla, para que el llamador use su fallback local.
+ */
+export const siguienteNumeroContador = async (
+  tipo: 'clientes' | 'comercios'
+): Promise<number | null> => {
+  try {
+    const docRef = doc(db, 'counters', tipo);
+    const nuevoValor = await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(docRef);
+      const actual = (snapshot.data()?.value as number | undefined) ?? 0;
+      const siguiente = actual + 1;
+      transaction.set(docRef, { value: siguiente }, { merge: true });
+      return siguiente;
+    });
+    console.log(`✅ Contador ${tipo} incrementado a ${nuevoValor}`);
+    return nuevoValor;
+  } catch (error: any) {
+    console.error(`❌ Error incrementando contador ${tipo}:`, error.message);
+    return null;
   }
 };
 

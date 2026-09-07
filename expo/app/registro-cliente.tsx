@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
 import type { Cliente } from '../types';
 import { signUp, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
-import { createDocument, getDocument } from '../lib/firebase-firestore';
+import { createDocument, getDocument, siguienteNumeroContador } from '../lib/firebase-firestore';
 
 export default function RegistroCliente() {
   const router = useRouter();
@@ -21,6 +21,8 @@ export default function RegistroCliente() {
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
+  const [registroExitoso, setRegistroExitoso] = useState<boolean>(false);
+  const [mensajeError, setMensajeError] = useState<string>('');
 
   const offerBiometricSetup = () => {
     Alert.alert(
@@ -49,13 +51,30 @@ export default function RegistroCliente() {
     );
   };
 
+  // Evita que la pantalla quede tildada si alguna llamada a Firebase no responde.
+  const conTimeout = <T,>(promesa: Promise<T>, ms = 30000): Promise<T> =>
+    Promise.race([
+      promesa,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout-registro')), ms)
+      ),
+    ]);
+
+  const continuarTrasRegistro = () => {
+    if (Platform.OS !== 'web' && isBiometricAvailable && !isBiometricEnabled) {
+      offerBiometricSetup();
+    } else {
+      router.replace('/cliente/perfil');
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setIsRegistering(true);
     try {
       const { user: firebaseUser, error: authError } = await signInWithGoogle();
       
       if (authError || !firebaseUser) {
-        Alert.alert('Error', authError || 'Error al iniciar sesión con Google');
+        setMensajeError(authError || 'Error al iniciar sesión con Google');
         setIsRegistering(false);
         return;
       }
@@ -69,7 +88,7 @@ export default function RegistroCliente() {
           router.replace('/cliente/perfil');
         } catch {
           setIsRegistering(false);
-          Alert.alert('Error', 'Error al iniciar sesión');
+          setMensajeError('Error al iniciar sesión');
         }
         return;
       }
@@ -106,18 +125,16 @@ export default function RegistroCliente() {
       console.log('✅ Documento creado exitosamente en /users con role: Cliente');
       
       try {
-        await login(newCliente);
+        await conTimeout(login(newCliente));
         setIsRegistering(false);
-        Alert.alert('Éxito', '¡Registro completado con Google!', [
-          { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
-        ]);
+        setRegistroExitoso(true);
       } catch {
         setIsRegistering(false);
-        Alert.alert('Error', 'Error al iniciar sesión');
+        setMensajeError('Error al iniciar sesión');
       }
     } catch (error: any) {
       setIsRegistering(false);
-      Alert.alert('Error', error.message || 'Error al registrar con Google');
+      setMensajeError(error.message || 'Error al registrar con Google');
     }
   };
 
@@ -127,7 +144,7 @@ export default function RegistroCliente() {
       const { user: firebaseUser, error: authError } = await signInWithApple();
       
       if (authError || !firebaseUser) {
-        Alert.alert('Error', authError || 'Error al iniciar sesión con Apple');
+        setMensajeError(authError || 'Error al iniciar sesión con Apple');
         setIsRegistering(false);
         return;
       }
@@ -141,7 +158,7 @@ export default function RegistroCliente() {
           router.replace('/cliente/perfil');
         } catch {
           setIsRegistering(false);
-          Alert.alert('Error', 'Error al iniciar sesión');
+          setMensajeError('Error al iniciar sesión');
         }
         return;
       }
@@ -178,57 +195,59 @@ export default function RegistroCliente() {
       console.log('✅ Documento creado exitosamente en /users con role: Cliente');
       
       try {
-        await login(newCliente);
+        await conTimeout(login(newCliente));
         setIsRegistering(false);
-        Alert.alert('Éxito', '¡Registro completado con Apple!', [
-          { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
-        ]);
+        setRegistroExitoso(true);
       } catch {
         setIsRegistering(false);
-        Alert.alert('Error', 'Error al iniciar sesión');
+        setMensajeError('Error al iniciar sesión');
       }
     } catch (error: any) {
       setIsRegistering(false);
-      Alert.alert('Error', error.message || 'Error al registrar con Apple');
+      setMensajeError(error.message || 'Error al registrar con Apple');
     }
   };
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Por favor complete todos los campos');
+      setMensajeError('Por favor complete todos los campos');
       return;
     }
 
     if (!acceptedTerms) {
-      Alert.alert('Error', 'Debes aceptar los términos y condiciones para continuar');
+      setMensajeError('Debes aceptar los términos y condiciones para continuar');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      setMensajeError('Las contraseñas no coinciden');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      setMensajeError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     setIsRegistering(true);
+    setMensajeError('');
 
     try {
       console.log('📝 Iniciando registro de cliente...');
       const name = `${firstName} ${lastName}`;
       
-      const { user: firebaseUser, error: authError } = await signUp(email, password, name);
+      const { user: firebaseUser, error: authError } = await conTimeout(signUp(email, password, name));
       
       if (authError || !firebaseUser) {
-        Alert.alert('Error', authError || 'Error al crear la cuenta');
+        setMensajeError(authError || 'Error al crear la cuenta');
         setIsRegistering(false);
         return;
       }
 
-      const clienteNumber = await getNextClienteNumber();
+      // Número secuencial compartido con el panel admin y la app iOS (Firestore).
+      // Si Firestore falla, usa el contador local como respaldo.
+      const numeroRemoto = await siguienteNumeroContador('clientes');
+      const clienteNumber = numeroRemoto ?? await getNextClienteNumber();
       const numeroCliente = `${clienteNumber}`;
       
       const newCliente: Cliente = {
@@ -240,22 +259,20 @@ export default function RegistroCliente() {
       };
 
       console.log('📝 Creando documento en Firestore en /users con role: Cliente:', firebaseUser.uid);
-      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
-        ...newCliente,
-        role: 'Cliente',
-        status: 'Activo',
-        phone: 'N/A',
-        city: 'N/A',
-        os: Platform.OS === 'ios' ? 'iOS' : 'Android',
-      });
+      const { success: usersSuccess, error: usersError } = await conTimeout(
+        createDocument('users', firebaseUser.uid, {
+          ...newCliente,
+          role: 'Cliente',
+          status: 'Activo',
+          phone: 'N/A',
+          city: 'N/A',
+          os: Platform.OS === 'ios' ? 'iOS' : 'Android',
+        })
+      );
       
       if (!usersSuccess || usersError) {
         console.error('❌ Error guardando datos del cliente:', usersError);
-        Alert.alert(
-          '🚨 ERROR CRÍTICO FIRESTORE',
-          `FALLO AL GUARDAR EN /users:\n\n${usersError || 'Error desconocido'}\n\nUID: ${firebaseUser.uid}\n\nPor favor captura esta pantalla y contacta a soporte.`,
-          [{ text: 'Entendido' }]
-        );
+        setMensajeError(`No se pudieron guardar tus datos: ${usersError || 'Error desconocido'}`);
         setIsRegistering(false);
         return;
       }
@@ -264,36 +281,47 @@ export default function RegistroCliente() {
       console.log('✅ Proceso de registro completado. Iniciando login...');
       
       try {
-        await login(newCliente, { email, password, type: 'cliente' });
+        await conTimeout(login(newCliente, { email, password, type: 'cliente' }));
         console.log('✅ Login completado exitosamente');
-        
-        if (isBiometricAvailable && !isBiometricEnabled) {
-          setIsRegistering(false);
-          offerBiometricSetup();
-        } else {
-          setIsRegistering(false);
-          Alert.alert('¡Éxito!', '¡Registro completado! Bienvenido a Al-Toke', [
-            { text: 'OK', onPress: () => router.replace('/cliente/perfil') },
-          ]);
-        }
+        setIsRegistering(false);
+        setRegistroExitoso(true);
       } catch (loginError: any) {
         console.error('❌ Error en login:', loginError);
         setIsRegistering(false);
-        Alert.alert('Error', 'Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
+        setMensajeError('Registro exitoso pero hubo un problema al iniciar sesión. Por favor, inicia sesión manualmente.');
       }
     } catch (error: any) {
       setIsRegistering(false);
-      Alert.alert('Error', error.message || 'Error al registrar el usuario');
+      setMensajeError(
+        error.message === 'timeout-registro'
+          ? 'El registro está tardando demasiado. Verificá tu conexión e intentá nuevamente.'
+          : error.message || 'Error al registrar el usuario'
+      );
     }
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Registro de Cliente</Text>
-        <Text style={styles.subtitle}>Crea tu cuenta para descubrir ofertas cerca de ti</Text>
+        {registroExitoso ? (
+          <View style={styles.successContainer}>
+            <View style={styles.successIconCircle}>
+              <Check size={40} color="#fff" strokeWidth={3} />
+            </View>
+            <Text style={styles.successTitle}>¡Registro exitoso!</Text>
+            <Text style={styles.successText}>
+              Tu cuenta fue creada correctamente. ¡Bienvenido a Al-Toke!
+            </Text>
+            <TouchableOpacity style={styles.button} onPress={continuarTrasRegistro}>
+              <Text style={styles.buttonText}>Continuar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.title}>Registro de Cliente</Text>
+            <Text style={styles.subtitle}>Crea tu cuenta para descubrir ofertas cerca de ti</Text>
 
-        <View style={styles.form}>
+            <View style={styles.form}>
           <Text style={styles.label}>Nombre</Text>
           <TextInput
             style={styles.input}
@@ -389,6 +417,12 @@ export default function RegistroCliente() {
             </Text>
           </View>
 
+          {mensajeError ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{mensajeError}</Text>
+            </View>
+          ) : null}
+
           <TouchableOpacity 
             style={[styles.button, isRegistering && styles.buttonDisabled]} 
             onPress={handleRegister}
@@ -429,7 +463,9 @@ export default function RegistroCliente() {
               />
             </TouchableOpacity>
           </View>
-        </View>
+            </View>
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -573,5 +609,53 @@ const styles = StyleSheet.create({
     color: '#9dd9c1',
     fontWeight: '600' as const,
     textDecorationLine: 'underline',
+  },
+  errorContainer: {
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: '#b91c1c',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  successContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    marginTop: 40,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  successIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#9dd9c1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+    color: '#111',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 15,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
   },
 });
