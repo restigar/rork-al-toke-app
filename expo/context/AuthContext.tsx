@@ -6,8 +6,8 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Alert, Platform } from 'react-native';
 import type { User } from '../types';
-import { subscribeToAuthChanges, getCurrentUser } from '../lib/firebase-auth';
-import { getDocument } from '../lib/firebase-firestore';
+import { subscribeToAuthChanges, obtenerSesionActual } from '../lib/supabase-auth';
+import { getPerfil } from '../lib/supabase-db';
 
 const USER_STORAGE_KEY = '@altoke_user';
 const BIOMETRIC_ENABLED_KEY = '@altoke_biometric_enabled';
@@ -36,31 +36,31 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
       
       try {
-        const firebaseUser = getCurrentUser();
-        if (firebaseUser) {
-          console.log('✅ [AuthContext] Sesión activa en Firebase:', firebaseUser.uid);
-          
-          const timeoutPromise = new Promise((_, reject) => 
+        const usuarioSesion = await obtenerSesionActual();
+        if (usuarioSesion) {
+          console.log('✅ [AuthContext] Sesión activa en Supabase:', usuarioSesion.uid);
+
+          const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout')), 3000)
           );
-          
+
           try {
-            const userPromise = getDocument('users', firebaseUser.uid);
-            const { data: userData } = await Promise.race([userPromise, timeoutPromise]) as any;
-            
-            if (userData) {
-              console.log('✅ [AuthContext] Datos de usuario sincronizados desde Firestore');
-              await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
-              setUser(userData as User);
+            const perfilPromise = getPerfil(usuarioSesion.uid);
+            const { data: perfil } = await Promise.race([perfilPromise, timeoutPromise]) as any;
+
+            if (perfil) {
+              console.log('✅ [AuthContext] Datos de usuario sincronizados desde Supabase');
+              await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(perfil));
+              setUser(perfil as User);
             }
           } catch {
-            console.log('⚠️ [AuthContext] Timeout al sincronizar con Firestore, usando datos locales');
+            console.log('⚠️ [AuthContext] Timeout al sincronizar con Supabase, usando datos locales');
           }
         } else {
-          console.log('ℹ️ [AuthContext] No hay sesión activa en Firebase');
+          console.log('ℹ️ [AuthContext] No hay sesión activa en Supabase');
         }
-      } catch (firebaseError) {
-        console.log('⚠️ [AuthContext] Error con Firebase, continuando con datos locales:', firebaseError);
+      } catch (supabaseError) {
+        console.log('⚠️ [AuthContext] Error con Supabase, continuando con datos locales:', supabaseError);
       }
       
       const biometricEnabled = await AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY);
@@ -83,30 +83,30 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, []);
 
   useEffect(() => {
-    console.log('🔄 [AuthContext] Configurando listener de Firebase...');
+    console.log('🔄 [AuthContext] Configurando listener de Supabase...');
     try {
-      const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
-      if (firebaseUser && !user) {
-        console.log('🔔 Cambio de autenticación detectado:', firebaseUser.uid);
-        
-        const { data: userData } = await getDocument('users', firebaseUser.uid);
-        if (userData) {
-          console.log('✅ Auto-login con datos de usuario desde /users');
-          await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
-          setUser(userData as User);
-          return;
+      const unsubscribe = subscribeToAuthChanges(async (usuarioSupabase) => {
+        if (usuarioSupabase && !user) {
+          console.log('🔔 Cambio de autenticación detectado:', usuarioSupabase.uid);
+
+          const { data: perfil } = await getPerfil(usuarioSupabase.uid);
+          if (perfil) {
+            console.log('✅ Auto-login con perfil desde Supabase');
+            await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(perfil));
+            setUser(perfil as User);
+            return;
+          }
+        } else if (!usuarioSupabase && user) {
+          console.log('🔔 Sesión cerrada en Supabase');
         }
-      } else if (!firebaseUser && user) {
-        console.log('🔔 Sesión cerrada en Firebase');
-      }
-    });
+      });
 
       return () => {
-        console.log('🔄 [AuthContext] Desuscribiendo listener de Firebase');
+        console.log('🔄 [AuthContext] Desuscribiendo listener de Supabase');
         unsubscribe();
       };
     } catch (error) {
-      console.error('❌ [AuthContext] Error configurando listener Firebase:', error);
+      console.error('❌ [AuthContext] Error configurando listener de Supabase:', error);
     }
   }, [user]);
 

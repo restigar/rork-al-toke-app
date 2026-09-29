@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const updateComercioProcedure = publicProcedure
   .input(
@@ -18,7 +17,10 @@ export const updateComercioProcedure = publicProcedure
         facebook: z.string().optional(),
         instagram: z.string().optional(),
         website: z.string().optional(),
-        ubicacion: z.any().optional(),
+        calle: z.string().optional(),
+        ciudad: z.string().optional(),
+        latitud: z.number().optional(),
+        longitud: z.number().optional(),
         horarios: z.any().optional(),
         esta_de_turno: z.boolean().optional(),
       }),
@@ -28,36 +30,47 @@ export const updateComercioProcedure = publicProcedure
     console.log("✏️ Actualizando comercio:", input.comercioId);
 
     try {
-      const comercioRef = doc(db, "comercios", input.comercioId);
-      const comercioSnap = await getDoc(comercioRef);
+      const { data: comercioAntes } = await supabaseServer
+        .from("comercios")
+        .select("*")
+        .eq("id", input.comercioId)
+        .maybeSingle();
 
-      if (!comercioSnap.exists()) {
+      if (!comercioAntes) {
         throw new Error("Comercio no encontrado");
       }
 
-      const comercioAntes = comercioSnap.data();
+      const { data: comercioActualizado, error: updateError } = await supabaseServer
+        .from("comercios")
+        .update(input.data)
+        .eq("id", input.comercioId)
+        .select("*")
+        .single();
 
-      await updateDoc(comercioRef, input.data as any);
+      if (updateError || !comercioActualizado) {
+        console.error("❌ Error actualizando comercio:", updateError?.message);
+        throw new Error("Error al actualizar comercio");
+      }
 
-      const comercioActualizado = await getDoc(comercioRef);
-      const comercioData = comercioActualizado.data();
-      const data = { id: comercioActualizado.id, ...comercioData };
+      // Auditoría: no bloquea la operación si falla.
+      try {
+        await supabaseServer.from("auditoria_admin").insert({
+          admin_id: input.adminId,
+          accion: "actualizar_comercio",
+          entidad_tipo: "comercio",
+          entidad_id: input.comercioId,
+          datos_anteriores: comercioAntes,
+          datos_nuevos: comercioActualizado,
+        });
+      } catch (auditoriaError) {
+        console.warn("⚠️ No se pudo registrar auditoría:", auditoriaError);
+      }
 
-      await addDoc(collection(db, "auditoria_admin"), {
-        admin_id: input.adminId,
-        accion: "actualizar_comercio",
-        entidad_tipo: "comercio",
-        entidad_id: input.comercioId,
-        datos_anteriores: comercioAntes,
-        datos_nuevos: data,
-        created_at: new Date().toISOString(),
-      });
+      console.log("✅ Comercio actualizado:", comercioActualizado.nombre);
 
-      console.log("✅ Comercio actualizado:", comercioData?.nombre);
-
-      return data;
+      return comercioActualizado;
     } catch (error: any) {
       console.error("❌ Error actualizando comercio:", error);
-      throw new Error("Error al actualizar comercio");
+      throw new Error(error.message || "Error al actualizar comercio");
     }
   });

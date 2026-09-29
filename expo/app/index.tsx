@@ -18,8 +18,8 @@ import { useAuth } from '../context/AuthContext';
 import LocationPermissionModal from '../components/LocationPermissionModal';
 import { trpc } from '@/lib/trpc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signIn as firebaseSignIn, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
-import { getDocument } from '../lib/firebase-firestore';
+import { signIn, signInWithGoogle, signInWithApple } from '../lib/supabase-auth';
+import { getPerfil } from '../lib/supabase-db';
 import type { Cliente, Comercio } from '../types';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
@@ -63,14 +63,18 @@ export default function LandingPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const { user: firebaseUser, error: authError } = await signInWithGoogle();
-      
-      if (authError || !firebaseUser) {
+      const { user: usuarioAuth, error: authError } = await signInWithGoogle();
+
+      if (authError) {
         Alert.alert(t('error'), authError || 'Error al iniciar sesión con Google');
         return;
       }
+      if (!usuarioAuth) {
+        // OAuth web: redirigiendo al proveedor; la sesión se retoma al volver.
+        return;
+      }
 
-      const { data: userData } = await getDocument('users', firebaseUser.uid);
+      const { data: userData } = await getPerfil(usuarioAuth.uid);
       if (userData) {
         await login(userData as Cliente | Comercio);
         setShowLoginModal(false);
@@ -91,14 +95,18 @@ export default function LandingPage() {
 
   const handleAppleLogin = async () => {
     try {
-      const { user: firebaseUser, error: authError } = await signInWithApple();
-      
-      if (authError || !firebaseUser) {
+      const { user: usuarioAuth, error: authError } = await signInWithApple();
+
+      if (authError) {
         Alert.alert(t('error'), authError || 'Error al iniciar sesión con Apple');
         return;
       }
+      if (!usuarioAuth) {
+        // OAuth web: redirigiendo al proveedor; la sesión se retoma al volver.
+        return;
+      }
 
-      const { data: userData } = await getDocument('users', firebaseUser.uid);
+      const { data: userData } = await getPerfil(usuarioAuth.uid);
       if (userData) {
         await login(userData as Cliente | Comercio);
         setShowLoginModal(false);
@@ -134,18 +142,18 @@ export default function LandingPage() {
         return;
       }
     } catch {
-      console.log('No es administrador, verificando con Firebase...');
+      console.log('No es administrador, verificando con Supabase...');
     }
 
     try {
-      const { user: firebaseUser, error: authError } = await firebaseSignIn(email, password);
+      const { user: usuarioAuth, error: authError } = await signIn(email, password);
       
-      if (authError || !firebaseUser) {
+      if (authError || !usuarioAuth) {
         Alert.alert(t('error'), authError || t('userNotFound'));
         return;
       }
 
-      const { data: userData } = await getDocument('users', firebaseUser.uid);
+      const { data: userData } = await getPerfil(usuarioAuth.uid);
       if (userData) {
         await login(userData as Cliente | Comercio, { email, password, type: userData.type });
         setShowLoginModal(false);
@@ -192,14 +200,14 @@ export default function LandingPage() {
             return;
           }
         } else {
-          const { user: firebaseUser, error: authError } = await firebaseSignIn(credentials.email, credentials.password);
+          const { user: usuarioAuth, error: authError } = await signIn(credentials.email, credentials.password);
           
-          if (authError || !firebaseUser) {
+          if (authError || !usuarioAuth) {
             Alert.alert(t('error'), authError || t('loginError'));
             return;
           }
 
-          const { data: userData } = await getDocument('users', firebaseUser.uid);
+          const { data: userData } = await getPerfil(usuarioAuth.uid);
           if (userData) {
             await login(userData as Cliente | Comercio);
             setShowLoginModal(false);

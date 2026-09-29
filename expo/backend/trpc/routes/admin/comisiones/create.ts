@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
-import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const createComisionProcedure = publicProcedure
   .input(
@@ -18,33 +17,42 @@ export const createComisionProcedure = publicProcedure
     console.log("➕ Creando comisión:", input.nombre);
 
     try {
-      const comisionData = {
-        nombre: input.nombre,
-        tipo: input.tipo,
-        valor: input.valor,
-        descripcion: input.descripcion,
-        aplicable_a: input.aplicable_a,
-        activa: true,
-        created_at: new Date().toISOString(),
-      };
+      const { data: comisionCreada, error } = await supabaseServer
+        .from("comisiones")
+        .insert({
+          nombre: input.nombre,
+          tipo: input.tipo,
+          valor: input.valor,
+          descripcion: input.descripcion ?? null,
+          aplicable_a: input.aplicable_a,
+          activa: true,
+        })
+        .select("*")
+        .single();
 
-      const docRef = await addDoc(collection(db, "comisiones"), comisionData);
-      const data = { id: docRef.id, ...comisionData };
+      if (error || !comisionCreada) {
+        console.error("❌ Error creando comisión:", error?.message);
+        throw new Error("Error al crear comisión");
+      }
 
-      await addDoc(collection(db, "auditoria_admin"), {
-        admin_id: input.adminId,
-        accion: "crear_comision",
-        entidad_tipo: "comision",
-        entidad_id: data.id,
-        datos_nuevos: data,
-        created_at: new Date().toISOString(),
-      });
+      // Auditoría: no bloquea la operación si falla.
+      try {
+        await supabaseServer.from("auditoria_admin").insert({
+          admin_id: input.adminId,
+          accion: "crear_comision",
+          entidad_tipo: "comision",
+          entidad_id: comisionCreada.id,
+          datos_nuevos: comisionCreada,
+        });
+      } catch (auditoriaError) {
+        console.warn("⚠️ No se pudo registrar auditoría:", auditoriaError);
+      }
 
-      console.log("✅ Comisión creada:", data.nombre);
+      console.log("✅ Comisión creada:", comisionCreada.nombre);
 
-      return data;
+      return comisionCreada;
     } catch (error: any) {
       console.error("❌ Error creando comisión:", error);
-      throw new Error("Error al crear comisión");
+      throw new Error(error.message || "Error al crear comisión");
     }
   });

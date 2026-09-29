@@ -5,8 +5,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
 import type { Comercio } from '../types';
-import { signUp, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
-import { createDocument, getDocument, siguienteNumeroContador } from '../lib/firebase-firestore';
+import { signUp, signInWithGoogle, signInWithApple } from '../lib/supabase-auth';
+import { getPerfil, crearPerfilComercio } from '../lib/supabase-db';
 
 export default function RegistroComercio() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function RegistroComercio() {
     );
   };
 
-  // Evita que la pantalla quede tildada si alguna llamada a Firebase no responde.
+  // Evita que la pantalla quede tildada si alguna llamada a Supabase no responde.
   const conTimeout = <T,>(promesa: Promise<T>, ms = 30000): Promise<T> =>
     Promise.race([
       promesa,
@@ -68,19 +68,25 @@ export default function RegistroComercio() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const registrarConOAuth = async (proveedor: 'google' | 'apple') => {
     setIsRegistering(true);
     try {
-      const { user: firebaseUser, error: authError } = await signInWithGoogle();
-      
-      if (authError || !firebaseUser) {
-        setMensajeError(authError || 'Error al iniciar sesión con Google');
+      const resultado = proveedor === 'google' ? await signInWithGoogle() : await signInWithApple();
+      const { user: usuarioAuth, error: authError } = resultado;
+
+      if (authError) {
+        setMensajeError(authError);
+        setIsRegistering(false);
+        return;
+      }
+      if (!usuarioAuth) {
+        // OAuth web: redirigiendo al proveedor; la sesión se retoma al volver.
         setIsRegistering(false);
         return;
       }
 
-      const { data: existingComercio } = await getDocument('users', firebaseUser.uid);
-      
+      const { data: existingComercio } = await getPerfil(usuarioAuth.uid);
+
       if (existingComercio) {
         try {
           await saveComercio(existingComercio as Comercio);
@@ -94,36 +100,32 @@ export default function RegistroComercio() {
         return;
       }
 
-      const comercioNumber = await getNextComercioNumber();
-      const numeroComercio = `${comercioNumber}`;
-      
+      // El trigger de Supabase pudo haber creado una fila de cliente;
+      // creamos/actualizamos el perfil como comercio.
+      await crearPerfilComercio(
+        usuarioAuth.uid,
+        usuarioAuth.displayName || 'Comercio',
+        usuarioAuth.email || '',
+        undefined,
+        usuarioAuth.photoURL ?? undefined
+      );
+
+      const { data: perfilCreado } = await getPerfil(usuarioAuth.uid);
+      const numeroComercio =
+        perfilCreado && perfilCreado.type === 'comercio' && perfilCreado.numeroComercio
+          ? perfilCreado.numeroComercio
+          : `${await getNextComercioNumber()}`;
+
       const newComercio: Comercio = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Comercio',
-        nombre: firebaseUser.displayName || 'Comercio',
-        email: firebaseUser.email || '',
+        id: usuarioAuth.uid,
+        name: usuarioAuth.displayName || 'Comercio',
+        nombre: usuarioAuth.displayName || 'Comercio',
+        email: usuarioAuth.email || '',
         type: 'comercio',
         numeroComercio,
-        fotoPerfil: firebaseUser.photoURL || undefined,
+        fotoPerfil: usuarioAuth.photoURL ?? undefined,
       };
 
-      console.log('📝 Creando documento en users con role: Comercio...');
-      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
-        ...newComercio,
-        role: 'Comercio',
-        status: 'Activo',
-        phone: 'N/A',
-      });
-      
-      if (!usersSuccess || usersError) {
-        setIsRegistering(false);
-        console.error('❌ Error al crear documento en users:', usersError);
-        Alert.alert('Error', `Error al guardar datos del comercio: ${usersError}`);
-        return;
-      }
-      
-      console.log('✅ Documento creado exitosamente en /users con role: Comercio');
-      
       try {
         await saveComercio(newComercio);
         await conTimeout(login(newComercio));
@@ -135,80 +137,13 @@ export default function RegistroComercio() {
       }
     } catch (error: any) {
       setIsRegistering(false);
-      setMensajeError(error.message || 'Error al registrar con Google');
+      setMensajeError(error.message || `Error al registrar con ${proveedor === 'google' ? 'Google' : 'Apple'}`);
     }
   };
 
-  const handleAppleSignIn = async () => {
-    setIsRegistering(true);
-    try {
-      const { user: firebaseUser, error: authError } = await signInWithApple();
-      
-      if (authError || !firebaseUser) {
-        setMensajeError(authError || 'Error al iniciar sesión con Apple');
-        setIsRegistering(false);
-        return;
-      }
+  const handleGoogleSignIn = async () => registrarConOAuth('google');
 
-      const { data: existingComercio } = await getDocument('users', firebaseUser.uid);
-      
-      if (existingComercio) {
-        try {
-          await saveComercio(existingComercio as Comercio);
-          await login(existingComercio as Comercio);
-          setIsRegistering(false);
-          router.replace('/comercio/dashboard');
-        } catch {
-          setIsRegistering(false);
-          setMensajeError('Error al iniciar sesión');
-        }
-        return;
-      }
-
-      const comercioNumber = await getNextComercioNumber();
-      const numeroComercio = `${comercioNumber}`;
-      
-      const newComercio: Comercio = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Comercio',
-        nombre: firebaseUser.displayName || 'Comercio',
-        email: firebaseUser.email || '',
-        type: 'comercio',
-        numeroComercio,
-        fotoPerfil: firebaseUser.photoURL || undefined,
-      };
-
-      console.log('📝 Creando documento en users con role: Comercio...');
-      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
-        ...newComercio,
-        role: 'Comercio',
-        status: 'Activo',
-        phone: 'N/A',
-      });
-      
-      if (!usersSuccess || usersError) {
-        setIsRegistering(false);
-        console.error('❌ Error al crear documento en users:', usersError);
-        Alert.alert('Error', `Error al guardar datos del comercio: ${usersError}`);
-        return;
-      }
-      
-      console.log('✅ Documento creado exitosamente en /users con role: Comercio');
-      
-      try {
-        await saveComercio(newComercio);
-        await conTimeout(login(newComercio));
-        setIsRegistering(false);
-        setRegistroExitoso(true);
-      } catch {
-        setIsRegistering(false);
-        setMensajeError('Error al iniciar sesión');
-      }
-    } catch (error: any) {
-      setIsRegistering(false);
-      setMensajeError(error.message || 'Error al registrar con Apple');
-    }
-  };
+  const handleAppleSignIn = async () => registrarConOAuth('apple');
 
   const handleRegister = async () => {
     if (!nombre || !email || !password || !confirmPassword) {
@@ -235,49 +170,43 @@ export default function RegistroComercio() {
     setMensajeError('');
 
     try {
-      const { user: firebaseUser, error: authError } = await conTimeout(signUp(email, password, nombre));
+      // El metadata viaja a Supabase y el trigger `crear_perfil_usuario`
+      // crea la fila en la tabla `comercios` con número C00001 automático.
+      const { user: usuarioAuth, error: authError } = await conTimeout(
+        signUp(email, password, nombre, {
+          type: 'comercio',
+          nombre,
+          telefono: telefono || null,
+          aceptoTerminos: acceptedTerms,
+        })
+      );
       
-      if (authError || !firebaseUser) {
+      if (authError || !usuarioAuth) {
         setMensajeError(authError || 'Error al crear la cuenta');
         setIsRegistering(false);
         return;
       }
 
-      // Número secuencial compartido con el panel admin y la app iOS (Firestore).
-      // Si Firestore falla, usa el contador local como respaldo.
-      const numeroRemoto = await siguienteNumeroContador('comercios');
-      const comercioNumber = numeroRemoto ?? await getNextComercioNumber();
-      const numeroComercio = `${comercioNumber}`;
+      // El perfil ya existe en Supabase con su número de comercio;
+      // si no se pudo leer (ej: falta confirmar email), usamos el local.
+      const { data: perfilCreado } = await conTimeout(getPerfil(usuarioAuth.uid));
+      const numeroComercio =
+        perfilCreado && perfilCreado.type === 'comercio' && perfilCreado.numeroComercio
+          ? perfilCreado.numeroComercio
+          : `${await getNextComercioNumber()}`;
       
       const newComercio: Comercio = {
-        id: firebaseUser.uid,
+        id: usuarioAuth.uid,
         name: nombre,
         nombre,
         email,
         type: 'comercio',
         numeroComercio,
         telefono,
+        ...(perfilCreado?.fotoPerfil ? { fotoPerfil: perfilCreado.fotoPerfil } : {}),
       };
 
-      console.log('📝 Creando documento en Firestore en /users con role: Comercio:', firebaseUser.uid);
-      const { success: usersSuccess, error: usersError } = await conTimeout(
-        createDocument('users', firebaseUser.uid, {
-          ...newComercio,
-          role: 'Comercio',
-          status: 'Activo',
-          phone: telefono || 'N/A',
-        })
-      );
-      
-      if (!usersSuccess || usersError) {
-        console.error('Error guardando datos del comercio:', usersError);
-        setMensajeError(`No se pudieron guardar tus datos: ${usersError || 'Error desconocido'}`);
-        setIsRegistering(false);
-        return;
-      }
-
-      console.log('✅ Documento creado exitosamente en /users con role: Comercio');
-      console.log('✅ Proceso de registro completado. Iniciando login...');
+      console.log('✅ Registro completado en Supabase. Iniciando login...');
       
       try {
         await saveComercio(newComercio);

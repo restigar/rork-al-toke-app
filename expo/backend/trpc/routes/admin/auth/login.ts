@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
-import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const adminLoginProcedure = publicProcedure
   .input(
@@ -15,45 +13,41 @@ export const adminLoginProcedure = publicProcedure
     console.log("🔐 Intentando login de admin:", input.email);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, input.email, input.password);
-      const user = userCredential.user;
+      const { data: authData, error: authError } = await supabaseServer.auth.signInWithPassword({
+        email: input.email,
+        password: input.password,
+      });
 
-      if (!user) {
+      if (authError || !authData.user) {
         throw new Error("Credenciales inválidas");
       }
 
-      const adminRef = collection(db, "administradores");
-      const q = query(
-        adminRef,
-        where("email", "==", input.email),
-        where("activo", "==", true)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
+      const { data: adminData, error: adminError } = await supabaseServer
+        .from("administradores")
+        .select("*")
+        .eq("email", input.email)
+        .eq("activo", true)
+        .maybeSingle();
+
+      if (adminError || !adminData) {
+        console.error("❌ Usuario sin registro de administrador:", input.email);
         throw new Error("Usuario no es administrador");
       }
 
-      const adminDoc = querySnapshot.docs[0];
-      const adminData = adminDoc.data();
-      const admin = { id: adminDoc.id, ...adminData };
-
-      await updateDoc(doc(db, "administradores", admin.id), {
-        ultimo_acceso: new Date().toISOString()
-      });
+      await supabaseServer
+        .from("administradores")
+        .update({ ultimo_acceso: new Date().toISOString() })
+        .eq("id", adminData.id);
 
       console.log("✅ Login exitoso:", adminData.nombre);
 
-      const token = await user.getIdToken();
-
       return {
-        token,
-        id: admin.id,
+        token: authData.session?.access_token ?? "",
+        id: adminData.id,
         email: adminData.email as string,
         nombre: adminData.nombre as string,
         rol: adminData.rol as string,
-        permisos: adminData.permisos as any,
+        permisos: adminData.permisos ?? [],
       };
     } catch (error: any) {
       console.error("❌ Error en login:", error);

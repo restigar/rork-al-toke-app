@@ -1,7 +1,25 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import { supabaseServer } from "@/lib/supabase-server";
+
+/** Cuenta filas de una tabla; devuelve 0 si la tabla no existe o RLS lo bloquea. */
+const contar = async (tabla: string, filtros?: Record<string, unknown>): Promise<number> => {
+  try {
+    let consulta = supabaseServer.from(tabla).select("*", { count: "exact", head: true });
+    for (const [columna, valor] of Object.entries(filtros ?? {})) {
+      consulta = consulta.eq(columna, valor);
+    }
+    const { count, error } = await consulta;
+    if (error) {
+      console.warn(`⚠️ No se pudo contar ${tabla}:`, error.message);
+      return 0;
+    }
+    return count ?? 0;
+  } catch (error) {
+    console.warn(`⚠️ No se pudo contar ${tabla}:`, error);
+    return 0;
+  }
+};
 
 export const dashboardStatsProcedure = publicProcedure
   .input(
@@ -13,18 +31,18 @@ export const dashboardStatsProcedure = publicProcedure
     console.log("📊 Obteniendo estadísticas del dashboard:", input.adminId);
 
     try {
-      const [clientesSnap, comerciosSnap, ofertasSnap, ofertasDiaSnap] = await Promise.all([
-        getCountFromServer(collection(db, "clientes")),
-        getCountFromServer(collection(db, "comercios")),
-        getCountFromServer(query(collection(db, "ofertas"), where("activa", "==", true))),
-        getCountFromServer(collection(db, "ofertas_dia")),
+      const [totalClientes, totalComercios, totalOfertas, totalOfertasDia] = await Promise.all([
+        contar("clientes"),
+        contar("comercios"),
+        contar("ofertas", { activa: true }),
+        contar("ofertas_dia"),
       ]);
 
       const stats = {
-        totalClientes: clientesSnap.data().count,
-        totalComercios: comerciosSnap.data().count,
-        totalOfertas: ofertasSnap.data().count,
-        totalOfertasDia: ofertasDiaSnap.data().count,
+        totalClientes,
+        totalComercios,
+        totalOfertas,
+        totalOfertasDia,
       };
 
       console.log("✅ Estadísticas obtenidas:", stats);

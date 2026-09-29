@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
-import { db } from "@/lib/firebase";
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const listClientesProcedure = publicProcedure
   .input(
@@ -16,33 +15,32 @@ export const listClientesProcedure = publicProcedure
     console.log("📋 Listando clientes para admin:", input.adminId);
 
     try {
-      const clientesRef = collection(db, "clientes");
-      let q = query(
-        clientesRef,
-        orderBy("created_at", "desc"),
-        limit(input.limit)
-      );
-
-      const querySnapshot = await getDocs(q);
-      let clientes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let consulta = supabaseServer
+        .from("clientes")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(input.offset, input.offset + input.limit - 1);
 
       if (input.search) {
-        const searchLower = input.search.toLowerCase();
-        clientes = clientes.filter((cliente: any) => 
-          cliente.nombre?.toLowerCase().includes(searchLower) ||
-          cliente.email?.toLowerCase().includes(searchLower) ||
-          cliente.numero_cliente?.toLowerCase().includes(searchLower)
+        const patron = `%${input.search}%`;
+        consulta = consulta.or(
+          `nombre.ilike.${patron},apellido.ilike.${patron},email.ilike.${patron},numero_cliente.ilike.${patron}`
         );
       }
 
-      const totalQuery = query(clientesRef);
-      const totalSnapshot = await getDocs(totalQuery);
-      const total = totalSnapshot.size;
+      const { data: clientes, error, count } = await consulta;
 
-      console.log(`✅ Clientes obtenidos: ${clientes.length}/${total}`);
+      if (error) {
+        console.error("❌ Error listando clientes:", error.message);
+        throw new Error("Error al obtener clientes");
+      }
+
+      const total = count ?? clientes?.length ?? 0;
+
+      console.log(`✅ Clientes obtenidos: ${clientes?.length ?? 0}/${total}`);
 
       return {
-        clientes,
+        clientes: clientes ?? [],
         total,
       };
     } catch (error: any) {

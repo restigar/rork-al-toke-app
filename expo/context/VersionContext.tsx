@@ -2,7 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { getDocument } from '@/lib/firebase-firestore';
+import { getConfigVersion } from '@/lib/supabase-db';
 
 interface VersionConfig {
   minVersion: string;
@@ -62,7 +62,7 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
       });
 
       const result = await Promise.race([
-        getDocument<VersionConfig>('config', 'version'),
+        getConfigVersion(),
         timeoutPromise,
       ]);
 
@@ -75,16 +75,17 @@ export const [VersionProvider, useVersion] = createContextHook(() => {
         return;
       }
 
-      setVersionConfig(data);
+      const config = data as VersionConfig;
+      setVersionConfig(config);
 
-      const isValid = compareVersions(currentVersion, data.minVersion);
+      const isValid = compareVersions(currentVersion, config.minVersion);
       console.log(`📱 [VersionContext] Versión actual: ${currentVersion}`);
-      console.log(`📋 [VersionContext] Versión mínima: ${data.minVersion}`);
+      console.log(`📋 [VersionContext] Versión mínima: ${config.minVersion}`);
       console.log(`✅ [VersionContext] Versión válida: ${isValid}`);
 
       setIsVersionValid(isValid);
       
-      if (!isValid && data.forceUpdate) {
+      if (!isValid && config.forceUpdate) {
         setShowUpdateModal(true);
       }
 

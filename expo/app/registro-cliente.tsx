@@ -5,8 +5,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
 import type { Cliente } from '../types';
-import { signUp, signInWithGoogle, signInWithApple } from '../lib/firebase-auth';
-import { createDocument, getDocument, siguienteNumeroContador } from '../lib/firebase-firestore';
+import { signUp, signInWithGoogle, signInWithApple } from '../lib/supabase-auth';
+import { getPerfil, completarPerfilCliente } from '../lib/supabase-db';
 
 export default function RegistroCliente() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function RegistroCliente() {
     );
   };
 
-  // Evita que la pantalla quede tildada si alguna llamada a Firebase no responde.
+  // Evita que la pantalla quede tildada si alguna llamada a Supabase no responde.
   const conTimeout = <T,>(promesa: Promise<T>, ms = 30000): Promise<T> =>
     Promise.race([
       promesa,
@@ -68,19 +68,25 @@ export default function RegistroCliente() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const registrarConOAuth = async (proveedor: 'google' | 'apple') => {
     setIsRegistering(true);
     try {
-      const { user: firebaseUser, error: authError } = await signInWithGoogle();
-      
-      if (authError || !firebaseUser) {
-        setMensajeError(authError || 'Error al iniciar sesión con Google');
+      const resultado = proveedor === 'google' ? await signInWithGoogle() : await signInWithApple();
+      const { user: usuarioAuth, error: authError } = resultado;
+
+      if (authError) {
+        setMensajeError(authError);
+        setIsRegistering(false);
+        return;
+      }
+      if (!usuarioAuth) {
+        // OAuth web: redirigiendo al proveedor; la sesión se retoma al volver.
         setIsRegistering(false);
         return;
       }
 
-      const { data: existingCliente } = await getDocument('users', firebaseUser.uid);
-      
+      const { data: existingCliente } = await getPerfil(usuarioAuth.uid);
+
       if (existingCliente) {
         try {
           await login(existingCliente as Cliente);
@@ -93,37 +99,29 @@ export default function RegistroCliente() {
         return;
       }
 
-      const clienteNumber = await getNextClienteNumber();
-      const numeroCliente = `${clienteNumber}`;
-      
+      // El trigger de Supabase ya creó la fila en `clientes`; completamos
+      // los datos que vienen del proveedor OAuth.
+      await completarPerfilCliente(
+        usuarioAuth.uid,
+        usuarioAuth.displayName || 'Usuario',
+        usuarioAuth.photoURL ?? undefined
+      );
+
+      const { data: perfilActualizado } = await getPerfil(usuarioAuth.uid);
+      const numeroCliente =
+        perfilActualizado && perfilActualizado.type === 'cliente'
+          ? perfilActualizado.numeroCliente || `${await getNextClienteNumber()}`
+          : `${await getNextClienteNumber()}`;
+
       const newCliente: Cliente = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Usuario',
-        email: firebaseUser.email || '',
+        id: usuarioAuth.uid,
+        name: usuarioAuth.displayName || 'Usuario',
+        email: usuarioAuth.email || '',
         type: 'cliente',
         numeroCliente,
-        fotoPerfil: firebaseUser.photoURL || undefined,
+        fotoPerfil: usuarioAuth.photoURL ?? undefined,
       };
 
-      console.log('📝 Creando documento en users con role: Cliente...');
-      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
-        ...newCliente,
-        role: 'Cliente',
-        status: 'Activo',
-        phone: 'N/A',
-        city: 'N/A',
-        os: Platform.OS === 'ios' ? 'iOS' : 'Android',
-      });
-      
-      if (!usersSuccess || usersError) {
-        setIsRegistering(false);
-        console.error('❌ Error al crear documento en users:', usersError);
-        Alert.alert('Error', `Error al guardar datos del cliente: ${usersError}`);
-        return;
-      }
-      
-      console.log('✅ Documento creado exitosamente en /users con role: Cliente');
-      
       try {
         await conTimeout(login(newCliente));
         setIsRegistering(false);
@@ -134,79 +132,13 @@ export default function RegistroCliente() {
       }
     } catch (error: any) {
       setIsRegistering(false);
-      setMensajeError(error.message || 'Error al registrar con Google');
+      setMensajeError(error.message || `Error al registrar con ${proveedor === 'google' ? 'Google' : 'Apple'}`);
     }
   };
 
-  const handleAppleSignIn = async () => {
-    setIsRegistering(true);
-    try {
-      const { user: firebaseUser, error: authError } = await signInWithApple();
-      
-      if (authError || !firebaseUser) {
-        setMensajeError(authError || 'Error al iniciar sesión con Apple');
-        setIsRegistering(false);
-        return;
-      }
+  const handleGoogleSignIn = async () => registrarConOAuth('google');
 
-      const { data: existingCliente } = await getDocument('users', firebaseUser.uid);
-      
-      if (existingCliente) {
-        try {
-          await login(existingCliente as Cliente);
-          setIsRegistering(false);
-          router.replace('/cliente/perfil');
-        } catch {
-          setIsRegistering(false);
-          setMensajeError('Error al iniciar sesión');
-        }
-        return;
-      }
-
-      const clienteNumber = await getNextClienteNumber();
-      const numeroCliente = `${clienteNumber}`;
-      
-      const newCliente: Cliente = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Usuario',
-        email: firebaseUser.email || '',
-        type: 'cliente',
-        numeroCliente,
-        fotoPerfil: firebaseUser.photoURL || undefined,
-      };
-
-      console.log('📝 Creando documento en users con role: Cliente...');
-      const { success: usersSuccess, error: usersError } = await createDocument('users', firebaseUser.uid, {
-        ...newCliente,
-        role: 'Cliente',
-        status: 'Activo',
-        phone: 'N/A',
-        city: 'N/A',
-        os: Platform.OS === 'ios' ? 'iOS' : 'Android',
-      });
-      
-      if (!usersSuccess || usersError) {
-        setIsRegistering(false);
-        console.error('❌ Error al crear documento en users:', usersError);
-        Alert.alert('Error', `Error al guardar datos del cliente: ${usersError}`);
-        return;
-      }
-      
-      console.log('✅ Documento creado exitosamente en /users con role: Cliente');
-      
-      try {
-        await conTimeout(login(newCliente));
-        setIsRegistering(false);
-        setRegistroExitoso(true);
-      } catch {
-        setIsRegistering(false);
-        setMensajeError('Error al iniciar sesión');
-      }
-    } catch (error: any) {
-      setIsRegistering(false);
-      setMensajeError(error.message || 'Error al registrar con Apple');
-    }
-  };
+  const handleAppleSignIn = async () => registrarConOAuth('apple');
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
@@ -236,49 +168,41 @@ export default function RegistroCliente() {
       console.log('📝 Iniciando registro de cliente...');
       const name = `${firstName} ${lastName}`;
       
-      const { user: firebaseUser, error: authError } = await conTimeout(signUp(email, password, name));
+      // El metadata viaja a Supabase y el trigger `crear_perfil_usuario`
+      // crea la fila en la tabla `clientes` con número CL00001 automático.
+      const { user: usuarioAuth, error: authError } = await conTimeout(
+        signUp(email, password, name, {
+          type: 'cliente',
+          nombre: firstName,
+          apellido: lastName,
+          aceptoTerminos: acceptedTerms,
+        })
+      );
       
-      if (authError || !firebaseUser) {
+      if (authError || !usuarioAuth) {
         setMensajeError(authError || 'Error al crear la cuenta');
         setIsRegistering(false);
         return;
       }
 
-      // Número secuencial compartido con el panel admin y la app iOS (Firestore).
-      // Si Firestore falla, usa el contador local como respaldo.
-      const numeroRemoto = await siguienteNumeroContador('clientes');
-      const clienteNumber = numeroRemoto ?? await getNextClienteNumber();
-      const numeroCliente = `${clienteNumber}`;
+      // El perfil ya existe en Supabase con su número de cliente;
+      // si no se pudo leer (ej: falta confirmar email), usamos el local.
+      const { data: perfilCreado } = await conTimeout(getPerfil(usuarioAuth.uid));
+      const numeroCliente =
+        perfilCreado && perfilCreado.type === 'cliente' && perfilCreado.numeroCliente
+          ? perfilCreado.numeroCliente
+          : `${await getNextClienteNumber()}`;
       
       const newCliente: Cliente = {
-        id: firebaseUser.uid,
+        id: usuarioAuth.uid,
         name,
         email,
         type: 'cliente',
         numeroCliente,
+        ...(perfilCreado?.fotoPerfil ? { fotoPerfil: perfilCreado.fotoPerfil } : {}),
       };
 
-      console.log('📝 Creando documento en Firestore en /users con role: Cliente:', firebaseUser.uid);
-      const { success: usersSuccess, error: usersError } = await conTimeout(
-        createDocument('users', firebaseUser.uid, {
-          ...newCliente,
-          role: 'Cliente',
-          status: 'Activo',
-          phone: 'N/A',
-          city: 'N/A',
-          os: Platform.OS === 'ios' ? 'iOS' : 'Android',
-        })
-      );
-      
-      if (!usersSuccess || usersError) {
-        console.error('❌ Error guardando datos del cliente:', usersError);
-        setMensajeError(`No se pudieron guardar tus datos: ${usersError || 'Error desconocido'}`);
-        setIsRegistering(false);
-        return;
-      }
-
-      console.log('✅ Documento creado exitosamente en /users con role: Cliente');
-      console.log('✅ Proceso de registro completado. Iniciando login...');
+      console.log('✅ Registro completado en Supabase. Iniciando login...');
       
       try {
         await conTimeout(login(newCliente, { email, password, type: 'cliente' }));

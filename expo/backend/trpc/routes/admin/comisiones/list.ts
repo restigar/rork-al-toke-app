@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
-import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const listComisionesProcedure = publicProcedure
   .input(
@@ -14,25 +13,25 @@ export const listComisionesProcedure = publicProcedure
     console.log("📋 Listando comisiones para admin:", input.adminId);
 
     try {
-      const comisionesRef = collection(db, "comisiones");
-      let q;
+      let consulta = supabaseServer
+        .from("comisiones")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (input.activa !== undefined) {
-        q = query(
-          comisionesRef,
-          where("activa", "==", input.activa),
-          orderBy("created_at", "desc")
-        );
-      } else {
-        q = query(comisionesRef, orderBy("created_at", "desc"));
+        consulta = consulta.eq("activa", input.activa);
       }
 
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const { data: comisiones, error } = await consulta;
 
-      console.log(`✅ Comisiones obtenidas: ${data.length}`);
+      if (error) {
+        console.error("❌ Error listando comisiones:", error.message);
+        throw new Error("Error al obtener comisiones");
+      }
 
-      return data;
+      console.log(`✅ Comisiones obtenidas: ${comisiones?.length ?? 0}`);
+
+      return comisiones ?? [];
     } catch (error: any) {
       console.error("❌ Error listando comisiones:", error);
       throw new Error("Error al obtener comisiones");
