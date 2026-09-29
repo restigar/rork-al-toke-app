@@ -15,7 +15,7 @@ import {
   DocumentData,
   runTransaction,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, obtenerDb } from './firebase';
 
 export const createDocument = async <T extends DocumentData>(
   collectionName: string, 
@@ -28,7 +28,10 @@ export const createDocument = async <T extends DocumentData>(
   console.log(`📝 Datos a guardar:`, JSON.stringify(data, null, 2));
   
   try {
-    const docRef = doc(db, collectionName, docId);
+    // Resolver Firestore al momento de usarlo: auto-repara la inicialización
+    // si el módulo se re-evaluó (lazy bundling / Fast Refresh).
+    const baseDatos = obtenerDb();
+    const docRef = doc(baseDatos, collectionName, docId);
     console.log('✅ Referencia al documento creada');
     
     const dataToSave = {
@@ -156,8 +159,9 @@ export const siguienteNumeroContador = async (
   tipo: 'clientes' | 'comercios'
 ): Promise<number | null> => {
   try {
-    const docRef = doc(db, 'counters', tipo);
-    const nuevoValor = await runTransaction(db, async (transaction) => {
+    const baseDatos = obtenerDb();
+    const docRef = doc(baseDatos, 'counters', tipo);
+    const nuevoValor = await runTransaction(baseDatos, async (transaction) => {
       const snapshot = await transaction.get(docRef);
       const actual = (snapshot.data()?.value as number | undefined) ?? 0;
       const siguiente = actual + 1;
