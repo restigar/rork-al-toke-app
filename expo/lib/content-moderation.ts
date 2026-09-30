@@ -36,7 +36,7 @@ export async function moderateImageContent(
           content: [
             {
               type: "text",
-              text: "Analiza esta imagen y determina si contiene contenido inapropiado. Verifica si hay: contenido sexual explícito o sugestivo, desnudez, violencia gráfica, contenido ilegal, o cualquier otro contenido inapropiado para una aplicación comercial. Responde con true en isAppropriate solo si la imagen es completamente apropiada para uso público.",
+              text: "Analiza esta imagen para decidir si puede publicarse en una app comercial de ofertas y negocios locales. Recházala (isAppropriate: false) SOLO si contiene: desnudez o contenido sexual explícito/sugestivo, violencia gráfica o gore, promoción de actividades ilegales, armas de forma amenazante, discurso o símbolos de odio, o material perturbador. IMPORTANTE: el contenido comercial cotidiano SIEMPRE es apropiado y debe aprobarse — fotos de comida, bebidas, productos, comercios, logos, carteles de ofertas, precios, texto promocional, personas trabajando, personas comunes en situaciones cotidianas. Un cartel de ofertas con precios y hamburguesas es contenido 100% válido. Ante la duda, aprueba la imagen.",
             },
             {
               type: "image",
