@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, MapPin, Navigation, Clock, MessageCircle, Store } from 'lucide-react-native';
 import { useBusiness } from '../../context/BusinessContext';
 import type { Comercio, Oferta } from '../../types';
+import OfertaMedia from '../../components/OfertaMedia';
 
 export default function OfertasComercio() {
   const router = useRouter();
@@ -195,11 +196,7 @@ export default function OfertasComercio() {
                 {ofertas.map((oferta) => (
                   <View key={oferta.id} style={styles.ofertaCard}>
                     {oferta.imagenUrl && (
-                      <Image
-                        source={{ uri: oferta.imagenUrl }}
-                        style={styles.ofertaImagen}
-                        resizeMode="cover"
-                      />
+                      <OfertaMedia uri={oferta.imagenUrl} style={styles.ofertaImagen} />
                     )}
                     
                     <View style={styles.ofertaContent}>

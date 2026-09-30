@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image, Modal, ActivityIndicator, Linking, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Linking, Platform } from 'react-native';
 import { Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, ArrowLeft, MapPin, MessageCircle, Navigation } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { useBusiness } from '../../context/BusinessContext';
 import type { OfertaDelDia } from '../../types';
+import OfertaMedia from '../../components/OfertaMedia';
 
 export default function OfertasDelDia() {
   const router = useRouter();
@@ -200,11 +201,7 @@ export default function OfertasDelDia() {
             {ofertasDelDia.map((oferta: OfertaDelDia) => (
               <View key={oferta.id} style={styles.ofertaCard}>
                 {oferta.imagenUrl && (
-                  <Image
-                    source={{ uri: oferta.imagenUrl }}
-                    style={styles.ofertaImage}
-                    resizeMode="cover"
-                  />
+                  <OfertaMedia uri={oferta.imagenUrl} style={styles.ofertaImage} />
                 )}
                 <View style={styles.ofertaContent}>
                   <Text style={styles.ofertaTitle}>{oferta.titulo}</Text>

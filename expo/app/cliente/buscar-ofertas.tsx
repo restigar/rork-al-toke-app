@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Image,
   Linking,
   Platform,
 } from 'react-native';
@@ -17,6 +16,7 @@ import * as Location from 'expo-location';
 import { useBusiness } from '../../context/BusinessContext';
 import { generateText } from '@rork-ai/toolkit-sdk';
 import type { Oferta, Comercio } from '../../types';
+import OfertaMedia from '../../components/OfertaMedia';
 
 interface OfertaConDistancia extends Oferta {
   comercio?: Comercio;
@@ -312,11 +312,7 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguna" si no
                 {resultados.map((oferta, index) => (
                   <View key={oferta.id} style={styles.ofertaCard}>
                     {oferta.imagenUrl && (
-                      <Image
-                        source={{ uri: oferta.imagenUrl }}
-                        style={styles.ofertaImagen}
-                        resizeMode="cover"
-                      />
+                      <OfertaMedia uri={oferta.imagenUrl} style={styles.ofertaImagen} />
                     )}
                     
                     <View style={styles.ofertaContent}>

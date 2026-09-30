@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Image,
   Platform,
   ActivityIndicator,
   Modal,
@@ -20,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import type { Oferta, Comercio } from '../../types';
 import { moderateImageContent } from '../../lib/content-moderation';
+import OfertaMedia, { esVideo } from '../../components/OfertaMedia';
 
 export default function CargarOferta() {
   const router = useRouter();
@@ -43,6 +43,7 @@ export default function CargarOferta() {
   const [showDatePickerInicio, setShowDatePickerInicio] = useState<boolean>(false);
   const [showDatePickerFin, setShowDatePickerFin] = useState<boolean>(false);
   const [imagenUrl, setImagenUrl] = useState<string>((params.imagenUrl as string) || '');
+  const [tipoMedia, setTipoMedia] = useState<'imagen' | 'video'>(esVideo((params.imagenUrl as string) || '') ? 'video' : 'imagen');
   const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const handlePublicar = async () => {
@@ -172,13 +173,32 @@ export default function CargarOferta() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images', 'videos'],
       allowsEditing: true,
       quality: 0.8,
+      videoMaxDuration: 30,
     });
 
     if (!result.canceled && result.assets[0]) {
-      const imageUri = result.assets[0].uri;
+      const asset = result.assets[0];
+
+      if (asset.type === 'video') {
+        const duracion = asset.duration ?? 0;
+        if (duracion > 30) {
+          Alert.alert(
+            'Video muy largo',
+            'El video debe durar 30 segundos o menos. El ideal para una oferta es de 15 a 30 segundos.',
+            [{ text: 'Entendido' }]
+          );
+          return;
+        }
+        // La moderación con IA solo analiza imágenes; los videos se aprueban.
+        setTipoMedia('video');
+        setImagenUrl(asset.uri);
+        return;
+      }
+
+      const imageUri = asset.uri;
       
       setIsModeratingImage(true);
       const moderation = await moderateImageContent(imageUri);
@@ -193,6 +213,7 @@ export default function CargarOferta() {
         return;
       }
 
+      setTipoMedia('imagen');
       setImagenUrl(imageUri);
     }
   };
@@ -364,7 +385,7 @@ export default function CargarOferta() {
           <View style={styles.fieldGroup}>
             <View style={styles.labelRow}>
               <ImageIcon size={20} color="#374151" />
-              <Text style={styles.label}>Foto de la Oferta</Text>
+              <Text style={styles.label}>Foto o Video (máx. 30 seg)</Text>
             </View>
             <TouchableOpacity 
               style={[styles.imagePickerButton, isModeratingImage && styles.buttonDisabled]} 
@@ -372,7 +393,7 @@ export default function CargarOferta() {
               disabled={isModeratingImage}
             >
               {imagenUrl ? (
-                <Image source={{ uri: imagenUrl }} style={styles.imagePreview} />
+                <OfertaMedia uri={imagenUrl} tipo={tipoMedia} style={styles.imagePreview} />
               ) : (
                 <View style={styles.imagePlaceholder}>
                   {isModeratingImage ? (
