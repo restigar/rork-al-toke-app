@@ -44,6 +44,7 @@ export default function CargarOferta() {
   const [showDatePickerFin, setShowDatePickerFin] = useState<boolean>(false);
   const [imagenUrl, setImagenUrl] = useState<string>((params.imagenUrl as string) || '');
   const [tipoMedia, setTipoMedia] = useState<'imagen' | 'video'>(esVideo((params.imagenUrl as string) || '') ? 'video' : 'imagen');
+  const [guardando, setGuardando] = useState<boolean>(false);
   const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
 
   const handlePublicar = async () => {
@@ -117,7 +118,12 @@ export default function CargarOferta() {
     console.log('Fecha actual:', new Date().toISOString());
     console.log('Es activa ahora?', new Date() >= new Date(oferta.vigenciaInicio) && new Date() <= new Date(oferta.vigenciaFin));
 
-    await saveOferta(oferta);
+    setGuardando(true);
+    try {
+      await saveOferta(oferta);
+    } finally {
+      setGuardando(false);
+    }
     
     Alert.alert(
       'Éxito', 
@@ -432,10 +438,11 @@ y finalizará en la fecha de fin al horario de cierre.
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.publishButton}
+              style={[styles.publishButton, guardando && styles.buttonDisabled]}
               onPress={handlePublicar}
+              disabled={guardando}
             >
-              <Text style={styles.publishButtonText}>{isEditMode ? 'Actualizar' : 'Publicar'}</Text>
+              <Text style={styles.publishButtonText}>{guardando ? 'Publicando...' : isEditMode ? 'Actualizar' : 'Publicar'}</Text>
             </TouchableOpacity>
           </View>
         </View>

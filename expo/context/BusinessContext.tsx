@@ -2,6 +2,13 @@ import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Comercio, Oferta, OfertaDelDia } from '../types';
+import {
+  cargarOfertas,
+  cargarOfertasDia,
+  guardarOfertaRemota,
+  guardarOfertaDiaRemota,
+  eliminarOfertaRemota,
+} from '../lib/supabase-ofertas';
 
 const COMERCIOS_KEY = '@altoke_comercios';
 const OFERTAS_KEY = '@altoke_ofertas';
@@ -39,6 +46,47 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
         const counter = JSON.parse(counterJson);
         setClienteCounter(counter.cliente || 0);
         setComercioCounter(counter.comercio || 0);
+      }
+
+      // Sincronizar con Supabase: la nube es la fuente de verdad,
+      // así lo que publica un celular lo ven todos los demás.
+      try {
+        const remotas = await cargarOfertas();
+        const remotasDia = await cargarOfertasDia();
+
+        if (remotas !== null && remotasDia !== null) {
+          const idsRemotos = new Set([...remotas.map(o => o.id), ...remotasDia.map(o => o.id)]);
+
+          // Migrar a la nube ofertas guardadas solo en este celular
+          const localesOfertas: Oferta[] = ofertasJson ? JSON.parse(ofertasJson) : [];
+          const localesDia: OfertaDelDia[] = ofertasDiaJson ? JSON.parse(ofertasDiaJson) : [];
+          const paraSubir = localesOfertas.filter(o => !idsRemotos.has(o.id));
+          const paraSubirDia = localesDia.filter(o => !idsRemotos.has(o.id));
+
+          for (const o of paraSubir) {
+            try {
+              await guardarOfertaRemota(o);
+            } catch (e) {
+              console.error('Error migrando oferta local:', e);
+            }
+          }
+          for (const o of paraSubirDia) {
+            try {
+              await guardarOfertaDiaRemota(o);
+            } catch (e) {
+              console.error('Error migrando oferta del día local:', e);
+            }
+          }
+
+          const finales = [...remotas, ...paraSubir];
+          const finalesDia = [...remotasDia, ...paraSubirDia];
+          setOfertas(finales);
+          setOfertasDia(finalesDia);
+          await AsyncStorage.setItem(OFERTAS_KEY, JSON.stringify(finales));
+          await AsyncStorage.setItem(OFERTAS_DIA_KEY, JSON.stringify(finalesDia));
+        }
+      } catch (error) {
+        console.error('Error sincronizando ofertas con Supabase:', error);
       }
     } catch (error) {
       console.error('Error loading business data:', error);
@@ -105,12 +153,22 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
     
     setOfertas(updated);
     await AsyncStorage.setItem(OFERTAS_KEY, JSON.stringify(updated));
+    try {
+      await guardarOfertaRemota(oferta);
+    } catch (error) {
+      console.error('Error sincronizando oferta con Supabase:', error);
+    }
   }, [ofertas]);
 
   const deleteOferta = useCallback(async (ofertaId: string) => {
     const updated = ofertas.filter(o => o.id !== ofertaId);
     setOfertas(updated);
     await AsyncStorage.setItem(OFERTAS_KEY, JSON.stringify(updated));
+    try {
+      await eliminarOfertaRemota(ofertaId);
+    } catch (error) {
+      console.error('Error eliminando oferta en Supabase:', error);
+    }
   }, [ofertas]);
 
   const getOfertasByComercio = useCallback((comercioId: string): Oferta[] => {
@@ -149,9 +207,14 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
   }, [clienteCounter, comercioCounter]);
 
   const saveOfertaDia = useCallback(async (oferta: OfertaDelDia) => {
-    const updated = [...ofertasDia, oferta];
+    const updated = [...ofertasDia.filter(o => o.id !== oferta.id), oferta];
     setOfertasDia(updated);
     await AsyncStorage.setItem(OFERTAS_DIA_KEY, JSON.stringify(updated));
+    try {
+      await guardarOfertaDiaRemota(oferta);
+    } catch (error) {
+      console.error('Error sincronizando oferta del día con Supabase:', error);
+    }
   }, [ofertasDia]);
 
   const getOfertasDiaByCliente = useCallback((clienteId: string): OfertaDelDia[] => {

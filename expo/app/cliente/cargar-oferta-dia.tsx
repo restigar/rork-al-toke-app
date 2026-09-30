@@ -33,6 +33,7 @@ export default function CargarOfertaDia() {
   const [fecha, setFecha] = useState<Date>(new Date());
   const [imagenUrl, setImagenUrl] = useState<string>('');
   const [tipoMedia, setTipoMedia] = useState<'imagen' | 'video'>('imagen');
+  const [guardando, setGuardando] = useState<boolean>(false);
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [direccion, setDireccion] = useState<string>('');
   const [numeroContacto, setNumeroContacto] = useState<string>('');
@@ -85,7 +86,12 @@ export default function CargarOfertaDia() {
       ubicacion: ubicacion || undefined,
     };
 
-    await saveOfertaDia(nuevaOferta);
+    setGuardando(true);
+    try {
+      await saveOfertaDia(nuevaOferta);
+    } finally {
+      setGuardando(false);
+    }
     
     Alert.alert('Éxito', 'Oferta del día publicada correctamente', [
       { text: 'OK', onPress: () => router.back() },
@@ -412,10 +418,11 @@ export default function CargarOfertaDia() {
           </View>
 
           <TouchableOpacity
-            style={styles.publishButton}
+            style={[styles.publishButton, guardando && styles.buttonDisabled]}
             onPress={handlePublicar}
+            disabled={guardando}
           >
-            <Text style={styles.publishButtonText}>Publicar Oferta del Día</Text>
+            <Text style={styles.publishButtonText}>{guardando ? 'Publicando...' : 'Publicar Oferta del Día'}</Text>
           </TouchableOpacity>
         </View>
       </View>
