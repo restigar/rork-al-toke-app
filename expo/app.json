@@ -81,12 +81,6 @@
         }
       ],
       [
-        "expo-av",
-        {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
-        }
-      ],
-      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
@@ -103,7 +97,8 @@
       "expo-build-properties",
       "expo-image",
       "expo-splash-screen",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

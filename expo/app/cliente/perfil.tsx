@@ -15,7 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, Calendar, LogOut, Settings, Tag, Mic, MicOff, User, MessageCircle, Mail, Map } from 'lucide-react-native';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+} from 'expo-audio';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import * as Location from 'expo-location';
@@ -31,7 +36,8 @@ export default function ClientePerfil() {
 
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const firstName = user?.name?.split(' ')[0] || user?.name || 'Usuario';
 
@@ -63,49 +69,22 @@ export default function ClientePerfil() {
   const startRecording = async () => {
     try {
       console.log('Solicitando permisos de grabación...');
-      const permission = await Audio.requestPermissionsAsync();
-      
-      if (permission.status !== 'granted') {
+      const permission = await requestRecordingPermissionsAsync();
+
+      if (!permission.granted) {
         Alert.alert('Permiso denegado', 'Se necesita permiso para grabar audio');
         return;
       }
 
       if (Platform.OS !== 'web') {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
         });
       }
 
       console.log('Iniciando grabación...');
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Platform.OS === 'web'
-          ? Audio.RecordingOptionsPresets.HIGH_QUALITY
-          : {
-              android: {
-                extension: '.m4a',
-                outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-                audioEncoder: Audio.AndroidAudioEncoder.AAC,
-                sampleRate: 44100,
-                numberOfChannels: 2,
-                bitRate: 128000,
-              },
-              ios: {
-                extension: '.wav',
-                outputFormat: Audio.IOSOutputFormat.LINEARPCM,
-                audioQuality: Audio.IOSAudioQuality.HIGH,
-                sampleRate: 44100,
-                numberOfChannels: 1,
-                bitRate: 128000,
-                linearPCMBitDepth: 16,
-                linearPCMIsBigEndian: false,
-                linearPCMIsFloat: false,
-              },
-              web: {},
-            }
-      );
-
-      setRecording(newRecording);
+      audioRecorder.record();
       setIsRecording(true);
       console.log('Grabación iniciada');
     } catch (err) {
@@ -116,19 +95,18 @@ export default function ClientePerfil() {
 
   const stopRecording = async () => {
     try {
-      if (!recording) return;
+      if (!isRecording) return;
 
       console.log('Deteniendo grabación...');
-      await recording.stopAndUnloadAsync();
-      
+      await audioRecorder.stop();
+
       if (Platform.OS !== 'web') {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
+        await setAudioModeAsync({
+          allowsRecording: false,
         });
       }
 
-      const uri = recording.getURI();
-      setRecording(null);
+      const uri = audioRecorder.uri;
       setIsRecording(false);
       console.log('Grabación detenida, URI:', uri);
 
@@ -138,6 +116,7 @@ export default function ClientePerfil() {
     } catch (err) {
       console.error('Error al detener grabación:', err);
       Alert.alert('Error', 'No se pudo detener la grabación');
+      setIsRecording(false);
     }
   };
 
