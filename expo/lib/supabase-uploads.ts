@@ -204,6 +204,46 @@ export async function subirArchivo(params: {
 }
 
 /**
+ * Sube la foto de perfil al bucket público (comercios-public, carpeta propia
+ * del usuario) y devuelve la URL pública permanente.
+ * Si algo falla, devuelve el URI original (fail-open).
+ */
+export async function subirFotoPerfil(uri: string, uid: string): Promise<string> {
+  if (!uri || uri.startsWith('http') || !isSupabaseConfigured || !uid) {
+    return uri;
+  }
+
+  try {
+    const response = await fetch(uri);
+    if (!response.ok) {
+      return uri;
+    }
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_IMAGE_BYTES) {
+      return uri;
+    }
+
+    const extension = (uri.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const mime = extension === 'png' ? 'image/png' : 'image/jpeg';
+    const storagePath = `${uid}/perfil-${Date.now()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from(BUCKET_COMERCIOS)
+      .upload(storagePath, buffer, { contentType: mime, upsert: true });
+
+    if (error) {
+      console.log('ℹ️ No se pudo subir la foto de perfil:', error.message);
+      return uri;
+    }
+
+    const { data } = supabase.storage.from(BUCKET_COMERCIOS).getPublicUrl(storagePath);
+    return data.publicUrl || uri;
+  } catch {
+    return uri;
+  }
+}
+
+/**
  * Lista los archivos de un dueño con su URL lista para mostrar.
  * Para comercios se acepta llamar sin ownerRole (cualquier usuario autenticado
  * puede leer las filas públicas gracias a RLS).

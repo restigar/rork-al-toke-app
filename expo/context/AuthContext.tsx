@@ -7,7 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Alert, Platform } from 'react-native';
 import type { User } from '../types';
 import { subscribeToAuthChanges, obtenerSesionActual } from '../lib/supabase-auth';
-import { getPerfil } from '../lib/supabase-db';
+import { getPerfil, actualizarPerfil } from '../lib/supabase-db';
 
 const USER_STORAGE_KEY = '@altoke_user';
 const BIOMETRIC_ENABLED_KEY = '@altoke_biometric_enabled';
@@ -186,6 +186,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
+    }
+
+    // Persistir también en Supabase (mejor esfuerzo; si falla queda el cambio local)
+    if (user.type) {
+      const datos: Record<string, unknown> = {};
+      if (userData.name !== undefined) datos.nombre = userData.name;
+      if (userData.fotoPerfil !== undefined) datos.foto_perfil = userData.fotoPerfil;
+      if (Object.keys(datos).length > 0) {
+        const resultado = await actualizarPerfil(user.id, user.type, datos);
+        if (!resultado.success) {
+          console.log('ℹ️ No se pudo guardar el perfil en Supabase:', resultado.error);
+        }
+      }
     }
   }, [user]);
 

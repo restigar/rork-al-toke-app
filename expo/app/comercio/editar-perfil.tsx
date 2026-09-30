@@ -16,6 +16,7 @@ import { ArrowLeft, Eye, EyeOff, Mail, Fingerprint, Trash2, Camera, User } from 
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { moderateImageContent } from '../../lib/content-moderation';
+import { subirFotoPerfil } from '../../lib/supabase-uploads';
 
 export default function EditarPerfilComercio() {
   const router = useRouter();
@@ -134,8 +135,9 @@ export default function EditarPerfilComercio() {
         return;
       }
 
-      setFotoPerfil(imageUri);
-      await updateUser({ fotoPerfil: imageUri });
+      const fotoUrl = await subirFotoPerfil(imageUri, user?.id || '');
+      setFotoPerfil(fotoUrl);
+      await updateUser({ fotoPerfil: fotoUrl });
       Alert.alert('Éxito', 'Foto de perfil actualizada');
     }
   };
@@ -157,13 +159,19 @@ export default function EditarPerfilComercio() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Foto de Perfil</Text>
           <View style={styles.profilePhotoSection}>
-            {fotoPerfil ? (
-              <Image source={{ uri: fotoPerfil }} style={styles.profilePhoto} />
-            ) : (
-              <View style={styles.profilePhotoPlaceholder}>
-                <User size={48} color="#9ca3af" />
-              </View>
-            )}
+            <TouchableOpacity
+              onPress={handlePickImage}
+              disabled={isModeratingImage}
+              activeOpacity={0.8}
+            >
+              {fotoPerfil ? (
+                <Image source={{ uri: fotoPerfil }} style={styles.profilePhoto} />
+              ) : (
+                <View style={styles.profilePhotoPlaceholder}>
+                  <User size={48} color="#9ca3af" />
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.changePhotoButton, isModeratingImage && styles.buttonDisabled]} 
               onPress={handlePickImage}

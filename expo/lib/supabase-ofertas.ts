@@ -111,20 +111,20 @@ export async function subirMediaOferta(uri: string, ownerId: string): Promise<st
       .upload(storagePath, buffer, { contentType: mime, upsert: false });
 
     if (error) {
-      console.error('Error subiendo media de oferta:', error.message);
+      console.log('ℹ️ No se pudo subir la media de la oferta:', error.message);
       return uri;
     }
 
     const { data } = supabase.storage.from(BUCKET_OFERTAS).getPublicUrl(storagePath);
     return data.publicUrl || uri;
   } catch (error) {
-    console.error('Error leyendo media de oferta:', error);
+    console.log('ℹ️ No se pudo leer la media de la oferta:', error instanceof Error ? error.message : error);
     return uri;
   }
 }
 
-/** Guarda (crea o actualiza) una oferta de comercio en Supabase. */
-export async function guardarOfertaRemota(oferta: Oferta): Promise<void> {
+/** Guarda (crea o actualiza) una oferta de comercio. Devuelve la URL final de la media. */
+export async function guardarOfertaRemota(oferta: Oferta): Promise<string> {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase no está configurado.');
   }
@@ -146,10 +146,12 @@ export async function guardarOfertaRemota(oferta: Oferta): Promise<void> {
   if (error) {
     throw new Error(error.message);
   }
+
+  return imagenUrl || '';
 }
 
-/** Guarda (crea o actualiza) una oferta del día de cliente en Supabase. */
-export async function guardarOfertaDiaRemota(oferta: OfertaDelDia): Promise<void> {
+/** Guarda (crea o actualiza) una oferta del día de cliente. Devuelve la URL final de la media. */
+export async function guardarOfertaDiaRemota(oferta: OfertaDelDia): Promise<string> {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase no está configurado.');
   }
@@ -173,6 +175,8 @@ export async function guardarOfertaDiaRemota(oferta: OfertaDelDia): Promise<void
   if (error) {
     throw new Error(error.message);
   }
+
+  return imagenUrl || '';
 }
 
 /** Elimina una oferta de comercio en Supabase. */
@@ -201,7 +205,7 @@ export async function cargarOfertas(): Promise<Oferta[] | null> {
     .limit(500);
 
   if (error) {
-    console.error('Error cargando ofertas:', error.message);
+    console.log('ℹ️ No se pudieron cargar las ofertas de la nube:', error.message);
     return null;
   }
   return ((data ?? []) as OfertaRow[]).map(filaAOferta);
@@ -222,7 +226,7 @@ export async function cargarOfertasDia(): Promise<OfertaDelDia[] | null> {
     .limit(500);
 
   if (error) {
-    console.error('Error cargando ofertas del día:', error.message);
+    console.log('ℹ️ No se pudieron cargar las ofertas del día de la nube:', error.message);
     return null;
   }
   return ((data ?? []) as OfertaDiaRow[]).map(filaAOfertaDia);

@@ -51,8 +51,12 @@ export default function OfertasDelDia() {
       if (!isSameDate) return false;
       
       if (userCity && oferta.ubicacion) {
-        return oferta.ubicacion.ciudad.toLowerCase().includes(userCity.toLowerCase()) ||
-               userCity.toLowerCase().includes(oferta.ubicacion.ciudad.toLowerCase());
+        // Comparación sin acentos: "Apóstoles" y "Apostoles" coinciden
+        const sinAcentos = (t: string) =>
+          t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const ciudadOferta = sinAcentos(oferta.ubicacion.ciudad);
+        const ciudadUsuario = sinAcentos(userCity);
+        return ciudadOferta.includes(ciudadUsuario) || ciudadUsuario.includes(ciudadOferta);
       }
       
       return true;

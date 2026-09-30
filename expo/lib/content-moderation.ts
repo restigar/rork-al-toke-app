@@ -119,7 +119,7 @@ export async function moderateImageContent(
 
     return { isAppropriate, reason: analisis.reason, categories };
   } catch (error) {
-    console.error('❌ Error al moderar contenido:', error);
+    console.log('ℹ️ Moderación no disponible, se permite la imagen:', error instanceof Error ? error.message : error);
     return {
       isAppropriate: true,
       reason: 'No se pudo analizar la imagen, se permite por defecto',

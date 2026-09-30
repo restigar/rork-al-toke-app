@@ -55,38 +55,63 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
         const remotasDia = await cargarOfertasDia();
 
         if (remotas !== null && remotasDia !== null) {
-          const idsRemotos = new Set([...remotas.map(o => o.id), ...remotasDia.map(o => o.id)]);
-
-          // Migrar a la nube ofertas guardadas solo en este celular
           const localesOfertas: Oferta[] = ofertasJson ? JSON.parse(ofertasJson) : [];
           const localesDia: OfertaDelDia[] = ofertasDiaJson ? JSON.parse(ofertasDiaJson) : [];
-          const paraSubir = localesOfertas.filter(o => !idsRemotos.has(o.id));
-          const paraSubirDia = localesDia.filter(o => !idsRemotos.has(o.id));
 
+          // A subir: las ofertas que no están en la nube y también las remotas
+          // cuya media quedó como archivo local (reintenta la subida al bucket).
+          const remotaPorId = new Map(remotas.map(o => [o.id, o] as const));
+          const remotaDiaPorId = new Map(remotasDia.map(o => [o.id, o] as const));
+          const mediaPendiente = (remota?: { imagenUrl?: string }) =>
+            Boolean(remota?.imagenUrl?.startsWith('file:'));
+
+          const paraSubir = localesOfertas.filter(
+            o => !remotaPorId.has(o.id) || mediaPendiente(remotaPorId.get(o.id))
+          );
+          const paraSubirDia = localesDia.filter(
+            o => !remotaDiaPorId.has(o.id) || mediaPendiente(remotaDiaPorId.get(o.id))
+          );
+
+          const urlFinal = new Map<string, string>();
           for (const o of paraSubir) {
             try {
-              await guardarOfertaRemota(o);
+              const url = await guardarOfertaRemota(o);
+              if (url) {
+                urlFinal.set(o.id, url);
+              }
             } catch (e) {
-              console.error('Error migrando oferta local:', e);
+              console.log('ℹ️ No se pudo migrar una oferta local:', e instanceof Error ? e.message : e);
             }
           }
           for (const o of paraSubirDia) {
             try {
-              await guardarOfertaDiaRemota(o);
+              const url = await guardarOfertaDiaRemota(o);
+              if (url) {
+                urlFinal.set(o.id, url);
+              }
             } catch (e) {
-              console.error('Error migrando oferta del día local:', e);
+              console.log('ℹ️ No se pudo migrar una oferta del día local:', e instanceof Error ? e.message : e);
             }
           }
 
-          const finales = [...remotas, ...paraSubir];
-          const finalesDia = [...remotasDia, ...paraSubirDia];
+          const mapa = new Map(remotas.map(o => [o.id, o] as const));
+          for (const o of paraSubir) {
+            mapa.set(o.id, { ...o, imagenUrl: urlFinal.get(o.id) ?? o.imagenUrl });
+          }
+          const mapaDia = new Map(remotasDia.map(o => [o.id, o] as const));
+          for (const o of paraSubirDia) {
+            mapaDia.set(o.id, { ...o, imagenUrl: urlFinal.get(o.id) ?? o.imagenUrl });
+          }
+
+          const finales = Array.from(mapa.values());
+          const finalesDia = Array.from(mapaDia.values());
           setOfertas(finales);
           setOfertasDia(finalesDia);
           await AsyncStorage.setItem(OFERTAS_KEY, JSON.stringify(finales));
           await AsyncStorage.setItem(OFERTAS_DIA_KEY, JSON.stringify(finalesDia));
         }
       } catch (error) {
-        console.error('Error sincronizando ofertas con Supabase:', error);
+        console.log('ℹ️ No se pudo sincronizar con Supabase (se usa la copia local):', error instanceof Error ? error.message : error);
       }
     } catch (error) {
       console.error('Error loading business data:', error);
@@ -156,7 +181,7 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
     try {
       await guardarOfertaRemota(oferta);
     } catch (error) {
-      console.error('Error sincronizando oferta con Supabase:', error);
+      console.log('ℹ️ No se pudo sincronizar la oferta con Supabase:', error instanceof Error ? error.message : error);
     }
   }, [ofertas]);
 
@@ -167,7 +192,7 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
     try {
       await eliminarOfertaRemota(ofertaId);
     } catch (error) {
-      console.error('Error eliminando oferta en Supabase:', error);
+      console.log('ℹ️ No se pudo eliminar la oferta en Supabase:', error instanceof Error ? error.message : error);
     }
   }, [ofertas]);
 
@@ -213,7 +238,7 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
     try {
       await guardarOfertaDiaRemota(oferta);
     } catch (error) {
-      console.error('Error sincronizando oferta del día con Supabase:', error);
+      console.log('ℹ️ No se pudo sincronizar la oferta del día con Supabase:', error instanceof Error ? error.message : error);
     }
   }, [ofertasDia]);
 
