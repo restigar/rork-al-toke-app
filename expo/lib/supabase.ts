@@ -19,7 +19,7 @@ const keyFinal = supabaseAnonKey ?? SUPABASE_ANON_KEY_RESPALDO;
 if (supabaseUrl && supabaseAnonKey) {
   console.log('✅ Supabase configurado con variables de entorno');
 } else {
-  console.warn('⚠️ Variables de entorno de Supabase ausentes: usando valores de respaldo del proyecto.');
+  console.log('ℹ️ Supabase: usando valores de respaldo del proyecto (funcional).');
 }
 
 /** Indica si las credenciales de Supabase están disponibles. */
