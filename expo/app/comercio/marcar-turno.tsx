@@ -193,6 +193,8 @@ export default function MarcarTurno() {
                       isSelectedDay(day) && styles.selectedDayText,
                       isTurnoDay(day) && styles.turnoDayText,
                     ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
                   >
                     {day}
                   </Text>
@@ -341,7 +343,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 4,
+    padding: 2,
   },
   emptyCell: {
     backgroundColor: 'transparent',

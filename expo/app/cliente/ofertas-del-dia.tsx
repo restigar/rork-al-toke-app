@@ -137,10 +137,14 @@ export default function OfertasDelDia() {
               disabled={day === null}
             >
               {day && (
-                <Text style={[
-                  styles.dayText,
-                  isSelectedDay(day) && styles.selectedDayText,
-                ]}>
+                <Text
+                  style={[
+                    styles.dayText,
+                    isSelectedDay(day) && styles.selectedDayText,
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
                   {day}
                 </Text>
               )}
@@ -429,11 +433,11 @@ const styles = StyleSheet.create({
   },
   weekDays: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
     marginBottom: 8,
   },
   weekDayText: {
-    width: 40,
+    width: '14.28%',
     textAlign: 'center',
     fontSize: 14,
     fontWeight: '600' as const,
@@ -448,7 +452,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 4,
+    padding: 2,
   },
   emptyDayCell: {
     backgroundColor: 'transparent',
