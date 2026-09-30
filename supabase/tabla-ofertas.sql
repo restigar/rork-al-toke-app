@@ -1,6 +1,7 @@
 -- ============================================================
--- AL TOKE APP — Tablas de OFERTAS (compartidas entre dispositivos)
+-- AL TOKE APP — Ofertas compartidas entre dispositivos
 -- Pegar completo en: Supabase Dashboard → SQL Editor → Run
+-- (Se puede ejecutar varias veces sin error)
 --
 -- Crea:
 --   1) public.ofertas         (ofertas de comercios)
@@ -59,53 +60,64 @@ alter table public.ofertas         enable row level security;
 alter table public.ofertas_del_dia enable row level security;
 
 -- ---------- OFERTAS (comercios) ----------
+drop policy if exists "ofertas_lectura_publica" on public.ofertas;
 create policy "ofertas_lectura_publica"
   on public.ofertas for select
   using (true);
 
+drop policy if exists "ofertas_insertar_propia" on public.ofertas;
 create policy "ofertas_insertar_propia"
   on public.ofertas for insert
   with check (auth.uid() = comercio_id);
 
+drop policy if exists "ofertas_actualizar_propia" on public.ofertas;
 create policy "ofertas_actualizar_propia"
   on public.ofertas for update
   using (auth.uid() = comercio_id)
   with check (auth.uid() = comercio_id);
 
+drop policy if exists "ofertas_borrar_propia" on public.ofertas;
 create policy "ofertas_borrar_propia"
   on public.ofertas for delete
   using (auth.uid() = comercio_id);
 
 -- ---------- OFERTAS_DEL_DIA (clientes) ----------
+drop policy if exists "ofertas_dia_lectura_publica" on public.ofertas_del_dia;
 create policy "ofertas_dia_lectura_publica"
   on public.ofertas_del_dia for select
   using (true);
 
+drop policy if exists "ofertas_dia_insertar_propia" on public.ofertas_del_dia;
 create policy "ofertas_dia_insertar_propia"
   on public.ofertas_del_dia for insert
   with check (auth.uid() = cliente_id);
 
+drop policy if exists "ofertas_dia_actualizar_propia" on public.ofertas_del_dia;
 create policy "ofertas_dia_actualizar_propia"
   on public.ofertas_del_dia for update
   using (auth.uid() = cliente_id)
   with check (auth.uid() = cliente_id);
 
+drop policy if exists "ofertas_dia_borrar_propia" on public.ofertas_del_dia;
 create policy "ofertas_dia_borrar_propia"
   on public.ofertas_del_dia for delete
   using (auth.uid() = cliente_id);
 
 -- ============================================================
 -- 5) BUCKET PÚBLICO para las fotos/videos de las ofertas
+--    (independiente de los buckets de perfiles que ya tenés)
 --    Ruta dentro del bucket: ofertas/<uid>/<archivo>
 -- ============================================================
 insert into storage.buckets (id, name, public)
 values ('ofertas-public', 'ofertas-public', true)
 on conflict (id) do update set public = true;
 
+drop policy if exists "ofertas_media_lectura_publica" on storage.objects;
 create policy "ofertas_media_lectura_publica"
   on storage.objects for select
   using (bucket_id = 'ofertas-public');
 
+drop policy if exists "ofertas_media_subir_propia" on storage.objects;
 create policy "ofertas_media_subir_propia"
   on storage.objects for insert to authenticated
   with check (
@@ -113,6 +125,7 @@ create policy "ofertas_media_subir_propia"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "ofertas_media_actualizar_propia" on storage.objects;
 create policy "ofertas_media_actualizar_propia"
   on storage.objects for update to authenticated
   using (
@@ -124,6 +137,7 @@ create policy "ofertas_media_actualizar_propia"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "ofertas_media_borrar_propia" on storage.objects;
 create policy "ofertas_media_borrar_propia"
   on storage.objects for delete to authenticated
   using (
@@ -134,7 +148,6 @@ create policy "ofertas_media_borrar_propia"
 -- ============================================================
 -- LISTO ✅
 -- Las ofertas ahora se guardan en Supabase: lo que publica un
--- celular lo ve cualquier otro celular. El bucket es público
--- solo para lectura; cada usuario solo puede subir/borrar sus
--- propios archivos (carpeta ofertas/<su-uid>/).
+-- celular lo ve cualquier otro celular. Tus tablas y buckets
+-- de clientes/comercios NO se tocan.
 -- ============================================================
