@@ -42,24 +42,32 @@ export default function OfertasDelDia() {
     const selected = new Date(selectedDate);
     selected.setHours(0, 0, 0, 0);
     
-    return ofertasDia.filter((oferta: OfertaDelDia) => {
+    const delDia = ofertasDia.filter((oferta: OfertaDelDia) => {
       const ofertaDate = new Date(oferta.fecha);
       ofertaDate.setHours(0, 0, 0, 0);
-      
-      const isSameDate = ofertaDate.getTime() === selected.getTime();
-      
-      if (!isSameDate) return false;
-      
-      if (userCity && oferta.ubicacion) {
-        // Comparación sin acentos: "Apóstoles" y "Apostoles" coinciden
-        const sinAcentos = (t: string) =>
-          t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const ciudadOferta = sinAcentos(oferta.ubicacion.ciudad);
-        const ciudadUsuario = sinAcentos(userCity);
-        return ciudadOferta.includes(ciudadUsuario) || ciudadUsuario.includes(ciudadOferta);
-      }
-      
-      return true;
+      return ofertaDate.getTime() === selected.getTime();
+    });
+
+    if (!userCity) {
+      return delDia;
+    }
+
+    // Sin filtro duro por ciudad: mostramos TODAS las ofertas del día y
+    // primero las que coinciden con tu zona (comparación sin acentos).
+    const sinAcentos = (t: string) =>
+      t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const ciudadUsuario = sinAcentos(userCity);
+    const esDeTuZona = (oferta: OfertaDelDia) => {
+      const ciudadOferta = oferta.ubicacion?.ciudad
+        ? sinAcentos(oferta.ubicacion.ciudad)
+        : '';
+      return Boolean(ciudadOferta) &&
+        (ciudadOferta.includes(ciudadUsuario) || ciudadUsuario.includes(ciudadOferta));
+    };
+    return [...delDia].sort((a, b) => {
+      const aZona = esDeTuZona(a) ? 0 : 1;
+      const bZona = esDeTuZona(b) ? 0 : 1;
+      return aZona - bZona;
     });
   }, [selectedDate, ofertasDia, userCity]);
 
@@ -194,16 +202,13 @@ export default function OfertasDelDia() {
         ) : ofertasDelDia.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No hay ofertas para la fecha seleccionada</Text>
-            {userCity && (
-              <Text style={styles.emptySubtext}>en {userCity}</Text>
-            )}
           </View>
         ) : (
           <>
             {userCity && (
               <View style={styles.locationInfo}>
                 <MapPin size={16} color="#6b7280" />
-                <Text style={styles.locationInfoText}>Mostrando ofertas en {userCity}</Text>
+                <Text style={styles.locationInfoText}>Ofertas de {userCity} primero</Text>
               </View>
             )}
             {ofertasDelDia.map((oferta: OfertaDelDia) => (

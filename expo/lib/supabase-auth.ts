@@ -165,6 +165,26 @@ export const resetPassword = async (email: string) => {
   }
 };
 
+/**
+ * Solicita el cambio de email de la cuenta autenticada.
+ * Si el proyecto exige confirmar email, Supabase envía un enlace al nuevo
+ * correo y el cambio se completa cuando el usuario lo confirma.
+ */
+export const cambiarEmail = async (nuevoEmail: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({ email: nuevoEmail });
+    if (error) {
+      console.error('❌ Error al cambiar email:', error.message);
+      return { error: mensajeAmigable(error) };
+    }
+    console.log('✅ Solicitud de cambio de email enviada');
+    return { error: null };
+  } catch (error: any) {
+    console.error('❌ Error al cambiar email:', error?.message);
+    return { error: mensajeAmigable(error) };
+  }
+};
+
 /** Devuelve el usuario de la sesión activa (o null). */
 export const obtenerSesionActual = async (): Promise<UsuarioAuth | null> => {
   try {

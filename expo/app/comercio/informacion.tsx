@@ -52,6 +52,7 @@ export default function InformacionComercio() {
     }))
   );
   const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
   const [showTipoPicker, setShowTipoPicker] = useState<boolean>(false);
   const [showRubroPicker, setShowRubroPicker] = useState<boolean>(false);
   const [showSubRubroPicker, setShowSubRubroPicker] = useState<boolean>(false);
@@ -77,31 +78,62 @@ export default function InformacionComercio() {
   };
 
   const obtenerUbicacion = async () => {
+    if (isLocating) return;
+    setIsLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitamos acceso a tu ubicación');
+        Alert.alert(
+          'Permiso denegado',
+          'Habilitá el permiso de ubicación de la app (Ajustes del celular > Aplicaciones > Al Toke > Permisos > Ubicación)'
+        );
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      // Precisión balanceada (más rápida que el GPS puro). Si demora más de
+      // 15 segundos, usamos la última posición conocida del dispositivo.
+      let location: Location.LocationObject | null = null;
+      try {
+        location = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+        ]);
+      } catch {
+        location = null;
+      }
+      if (!location) {
+        location = await Location.getLastKnownPositionAsync();
+      }
+      if (!location) {
+        Alert.alert(
+          'Sin ubicación',
+          'No se pudo detectar tu ubicación. Verificá que el GPS esté activado e intentá de nuevo.'
+        );
+        return;
+      }
+
       setLatitud(location.coords.latitude);
       setLongitud(location.coords.longitude);
 
-      const [geocode] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (geocode) {
-        setCalle(`${geocode.street || ''} ${geocode.streetNumber || ''}`);
-        setCiudad(geocode.city || geocode.region || '');
+      try {
+        const [geocode] = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        if (geocode) {
+          setCalle(`${geocode.street || ''} ${geocode.streetNumber || ''}`.trim());
+          setCiudad(geocode.city || geocode.region || '');
+        }
+      } catch {
+        // Si falla la geocodificación igual guardamos las coordenadas.
       }
 
       Alert.alert('Éxito', 'Ubicación obtenida correctamente');
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'No se pudo obtener la ubicación');
+      console.log('ℹ️ No se pudo obtener la ubicación:', error instanceof Error ? error.message : error);
+      Alert.alert('Error', 'No se pudo obtener la ubicación. Intentá de nuevo.');
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -472,9 +504,15 @@ export default function InformacionComercio() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ubicación</Text>
 
-          <TouchableOpacity style={styles.locationButton} onPress={obtenerUbicacion}>
+          <TouchableOpacity
+            style={[styles.locationButton, isLocating && styles.buttonDisabled]}
+            onPress={obtenerUbicacion}
+            disabled={isLocating}
+          >
             <MapPin size={20} color="#fff" />
-            <Text style={styles.locationButtonText}>Obtener ubicación actual</Text>
+            <Text style={styles.locationButtonText}>
+              {isLocating ? 'Detectando tu ubicación...' : 'Obtener ubicación actual'}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.label}>Calle</Text>

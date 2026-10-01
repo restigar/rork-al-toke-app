@@ -192,6 +192,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     if (user.type) {
       const datos: Record<string, unknown> = {};
       if (userData.name !== undefined) datos.nombre = userData.name;
+      if (userData.email !== undefined) datos.email = userData.email;
       if (userData.fotoPerfil !== undefined) datos.foto_perfil = userData.fotoPerfil;
       if (Object.keys(datos).length > 0) {
         const resultado = await actualizarPerfil(user.id, user.type, datos);

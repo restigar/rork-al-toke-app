@@ -33,7 +33,7 @@ export default function BuscarOfertas() {
   const params = useLocalSearchParams();
   const searchQuery = (params.q as string) || '';
   
-  const { comercios, getOfertasActivas } = useBusiness();
+  const { comercios, ofertas } = useBusiness();
   
   const [resultados, setResultados] = useState<OfertaConDistancia[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -42,6 +42,7 @@ export default function BuscarOfertas() {
   const [filtro, setFiltro] = useState<FiltroType>('todos');
   const [showOrdenMenu, setShowOrdenMenu] = useState<boolean>(false);
   const [showFiltroMenu, setShowFiltroMenu] = useState<boolean>(false);
+  const [mostrandoTodas, setMostrandoTodas] = useState<boolean>(false);
 
   useEffect(() => {
     loadUserLocation();
@@ -50,6 +51,8 @@ export default function BuscarOfertas() {
   useEffect(() => {
     if (searchQuery) {
       buscarConIA();
+    } else {
+      mostrarTodas();
     }
   }, [searchQuery, userLocation]);
 
@@ -119,13 +122,56 @@ export default function BuscarOfertas() {
     return false;
   };
 
+  const construirResultados = (base: Oferta[]): OfertaConDistancia[] => {
+    return base.map(oferta => {
+      const comercio = comercios.find(c => c.id === oferta.comercioId);
+      let distancia: number | undefined;
+
+      if (comercio?.ubicacion && userLocation) {
+        distancia = calcularDistancia(
+          userLocation.coords.latitude,
+          userLocation.coords.longitude,
+          comercio.ubicacion.latitud,
+          comercio.ubicacion.longitud
+        );
+      }
+
+      return {
+        ...oferta,
+        comercio,
+        distancia,
+        estaAbierto: comercio ? estaAbierto(comercio) : undefined,
+        estaDeTurno: comercio?.estaDeTurno,
+      };
+    });
+  };
+
+  /** Todas las ofertas vigentes: las activas y las que aún no empezaron. */
+  const obtenerVigentes = (): Oferta[] => {
+    const ahora = new Date();
+    return ofertas.filter(o => new Date(o.vigenciaFin) > ahora);
+  };
+
+  const mostrarTodas = () => {
+    setMostrandoTodas(false);
+    setResultados(construirResultados(obtenerVigentes()));
+    setIsLoading(false);
+  };
+
   const buscarConIA = async () => {
     try {
       setIsLoading(true);
       console.log('Buscando con IA:', searchQuery);
 
-      const ofertasActivas = getOfertasActivas();
-      
+      const ofertasActivas = obtenerVigentes();
+
+      if (ofertasActivas.length === 0) {
+        setMostrandoTodas(false);
+        setResultados([]);
+        setIsLoading(false);
+        return;
+      }
+
       const prompt = `Analiza la siguiente búsqueda del usuario: "${searchQuery}"
 
 Las ofertas disponibles son:
@@ -141,44 +187,35 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguna" si no
       const respuesta = await generateText(prompt);
       console.log('Respuesta IA:', respuesta);
 
-      let ofertasSeleccionadas: OfertaConDistancia[] = [];
+      let ofertasSeleccionadas: Oferta[] = [];
+      let sinCoincidenciasIA = false;
 
       if (respuesta.toLowerCase().includes('ninguna')) {
-        ofertasSeleccionadas = [];
+        sinCoincidenciasIA = true;
       } else {
         const indices = respuesta.match(/\d+/g)?.map(n => parseInt(n) - 1) || [];
         ofertasSeleccionadas = indices
           .filter(i => i >= 0 && i < ofertasActivas.length)
           .map(i => ofertasActivas[i]);
+        if (ofertasSeleccionadas.length === 0) {
+          sinCoincidenciasIA = true;
+        }
       }
 
-      const ofertasConDatos = ofertasSeleccionadas.map(oferta => {
-        const comercio = comercios.find(c => c.id === oferta.comercioId);
-        let distancia: number | undefined;
+      // Si la IA no encuentra coincidencias, mostramos todas las ofertas
+      // vigentes para que el usuario igual pueda verlas.
+      if (sinCoincidenciasIA) {
+        setMostrandoTodas(true);
+        setResultados(construirResultados(ofertasActivas));
+      } else {
+        setMostrandoTodas(false);
+        setResultados(construirResultados(ofertasSeleccionadas));
+      }
 
-        if (comercio?.ubicacion && userLocation) {
-          distancia = calcularDistancia(
-            userLocation.coords.latitude,
-            userLocation.coords.longitude,
-            comercio.ubicacion.latitud,
-            comercio.ubicacion.longitud
-          );
-        }
-
-        return {
-          ...oferta,
-          comercio,
-          distancia,
-          estaAbierto: comercio ? estaAbierto(comercio) : undefined,
-          estaDeTurno: comercio?.estaDeTurno,
-        };
-      });
-
-      setResultados(ofertasConDatos);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error en búsqueda con IA:', error);
-      setIsLoading(false);
+      console.log('ℹ️ Búsqueda con IA no disponible, mostrando todas las ofertas:', error instanceof Error ? error.message : error);
+      mostrarTodas();
     }
   };
 
@@ -219,7 +256,7 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguna" si no
   };
 
   const verMasOfertas = (comercioId: string) => {
-    router.push(`/comercio/detalle?id=${comercioId}` as Href);
+    router.push(`/cliente/ofertas-comercio?id=${comercioId}` as Href);
   };
 
   return (
@@ -229,7 +266,7 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguna" si no
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ArrowLeft size={24} color="#111" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Resultados: &quot;{searchQuery}&quot;</Text>
+          <Text style={styles.headerTitle}>{searchQuery ? `Resultados: "${searchQuery}"` : 'Ofertas disponibles'}</Text>
         </View>
 
         <View style={styles.controls}>
@@ -249,6 +286,12 @@ Responde SOLO con los números separados por comas (ej: 1,3,5) o "ninguna" si no
             <Text style={styles.controlButtonText}>Filtrar</Text>
           </TouchableOpacity>
         </View>
+
+        {mostrandoTodas && searchQuery ? (
+          <Text style={styles.sinCoincidenciasText}>
+            No encontramos coincidencias exactas para tu búsqueda. Te mostramos todas las ofertas vigentes.
+          </Text>
+        ) : null}
 
         {showOrdenMenu && (
           <View style={styles.menu}>
@@ -430,6 +473,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500' as const,
     color: '#6b7280',
+  },
+  sinCoincidenciasText: {
+    fontSize: 13,
+    color: '#92400e',
+    backgroundColor: '#fef3c7',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
   },
   menu: {
     backgroundColor: '#fff',

@@ -9,14 +9,16 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Eye, EyeOff, Trash2, Mail, Fingerprint, Camera, User } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff, Trash2, Mail, Fingerprint, Camera, User, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { moderateImageContent } from '../../lib/content-moderation';
 import { subirFotoPerfil } from '../../lib/supabase-uploads';
+import { cambiarEmail } from '../../lib/supabase-auth';
 
 export default function EditarPerfilCliente() {
   const router = useRouter();
@@ -29,6 +31,10 @@ export default function EditarPerfilCliente() {
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [fotoPerfil, setFotoPerfil] = useState<string>((user as any)?.fotoPerfil || '');
   const [isModeratingImage, setIsModeratingImage] = useState<boolean>(false);
+  const [showPhotoViewer, setShowPhotoViewer] = useState<boolean>(false);
+  const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
+  const [nuevoEmail, setNuevoEmail] = useState<string>('');
+  const [isChangingEmail, setIsChangingEmail] = useState<boolean>(false);
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -142,6 +148,69 @@ export default function EditarPerfilCliente() {
     }
   };
 
+  // Al tocar la foto: opciones de verla (en grande) o cambiarla.
+  const handlePhotoPress = () => {
+    if (!fotoPerfil) {
+      handlePickImage();
+      return;
+    }
+    Alert.alert(
+      'Foto de perfil',
+      '¿Qué querés hacer?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Ver foto', onPress: () => setShowPhotoViewer(true) },
+        { text: 'Cambiar foto', onPress: handlePickImage },
+      ]
+    );
+  };
+
+  const handleChangeEmail = () => {
+    const email = nuevoEmail.trim().toLowerCase();
+    if (!email) {
+      Alert.alert('Error', 'Ingresá tu nuevo email');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      Alert.alert('Error', 'El formato del email no es válido');
+      return;
+    }
+    if (email === (user?.email || '').toLowerCase()) {
+      Alert.alert('Aviso', 'Ese ya es tu email actual');
+      return;
+    }
+
+    Alert.alert(
+      'Cambiar Email',
+      `Vamos a enviar un enlace de confirmación a ${email}. ¿Continuar?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Enviar',
+          onPress: async () => {
+            setIsChangingEmail(true);
+            try {
+              const { error } = await cambiarEmail(email);
+              if (error) {
+                Alert.alert('Error', error);
+              } else {
+                await updateUser({ email });
+                setShowEmailModal(false);
+                setNuevoEmail('');
+                Alert.alert(
+                  'Éxito',
+                  'Te enviamos un enlace de confirmación a tu nuevo email. Confirmalo para completar el cambio.'
+                );
+              }
+            } finally {
+              setIsChangingEmail(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -160,7 +229,7 @@ export default function EditarPerfilCliente() {
           <Text style={styles.sectionTitle}>Foto de Perfil</Text>
           <View style={styles.profilePhotoSection}>
             <TouchableOpacity
-              onPress={handlePickImage}
+              onPress={handlePhotoPress}
               disabled={isModeratingImage}
               activeOpacity={0.8}
             >
@@ -261,6 +330,28 @@ export default function EditarPerfilCliente() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Email de la Cuenta</Text>
+          <Text style={styles.recoveryText}>
+            Este es el email con el que iniciás sesión
+          </Text>
+          <View style={styles.emailBox}>
+            <Mail size={20} color="#9dd9c1" />
+            <Text style={styles.emailBoxText} numberOfLines={1}>
+              {user?.email || 'Sin email'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.changeEmailButton}
+            onPress={() => {
+              setNuevoEmail(user?.email || '');
+              setShowEmailModal(true);
+            }}
+          >
+            <Text style={styles.changeEmailText}>Cambiar email</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recuperar Contraseña</Text>
           <Text style={styles.recoveryText}>
             Si olvidaste tu contraseña, puedes recibir un enlace de recuperación por email
@@ -302,6 +393,54 @@ export default function EditarPerfilCliente() {
             <Text style={styles.deleteText}>Eliminar Cuenta</Text>
           </TouchableOpacity>
         </View>
+
+        <Modal visible={showPhotoViewer} transparent animationType="fade" onRequestClose={() => setShowPhotoViewer(false)}>
+          <View style={styles.photoViewerOverlay}>
+            <TouchableOpacity style={styles.photoViewerClose} onPress={() => setShowPhotoViewer(false)}>
+              <X size={28} color="#fff" />
+            </TouchableOpacity>
+            {fotoPerfil ? (
+              <Image source={{ uri: fotoPerfil }} style={styles.photoViewerImage} resizeMode="contain" />
+            ) : null}
+          </View>
+        </Modal>
+
+        <Modal visible={showEmailModal} transparent animationType="fade" onRequestClose={() => setShowEmailModal(false)}>
+          <View style={styles.emailModalOverlay}>
+            <View style={styles.emailModalCard}>
+              <Text style={styles.emailModalTitle}>Cambiar Email</Text>
+              <TextInput
+                style={styles.emailModalInput}
+                value={nuevoEmail}
+                onChangeText={setNuevoEmail}
+                placeholder="nuevo@email.com"
+                placeholderTextColor="#9ca3af"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <View style={styles.emailModalButtons}>
+                <TouchableOpacity
+                  style={styles.emailModalCancel}
+                  onPress={() => setShowEmailModal(false)}
+                  disabled={isChangingEmail}
+                >
+                  <Text style={styles.emailModalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.emailModalConfirm, isChangingEmail && styles.buttonDisabled]}
+                  onPress={handleChangeEmail}
+                  disabled={isChangingEmail}
+                >
+                  {isChangingEmail ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.emailModalConfirmText}>Enviar enlace</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -485,5 +624,108 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  emailBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  emailBoxText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111',
+  },
+  changeEmailButton: {
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#9dd9c1',
+  },
+  changeEmailText: {
+    color: '#9dd9c1',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  photoViewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoViewerClose: {
+    position: 'absolute',
+    top: 50,
+    right: 24,
+    padding: 8,
+    zIndex: 1,
+  },
+  photoViewerImage: {
+    width: '100%',
+    height: '80%',
+  },
+  emailModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  emailModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  emailModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    color: '#111',
+    marginBottom: 16,
+  },
+  emailModalInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    backgroundColor: '#f9fafb',
+    marginBottom: 16,
+  },
+  emailModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  emailModalCancel: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  emailModalCancelText: {
+    color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  emailModalConfirm: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#9dd9c1',
+  },
+  emailModalConfirmText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });

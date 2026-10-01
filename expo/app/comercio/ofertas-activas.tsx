@@ -1,9 +1,17 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Calendar, DollarSign, Trash2, Edit2 } from 'lucide-react-native';
+import { Calendar, DollarSign, Trash2, Edit2, List } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
+import type { Oferta } from '../../types';
+
+interface GrupoConfig {
+  texto: string;
+  cardEstilo: object;
+  badgeEstilo: object;
+  badgeTextoEstilo: object;
+}
 
 export default function OfertasActivas() {
   const router = useRouter();
@@ -11,26 +19,27 @@ export default function OfertasActivas() {
   const { getOfertasByComercio, deleteOferta } = useBusiness();
   const ofertas = getOfertasByComercio(user?.id || '');
 
-  const isOfertaActiva = (oferta: any) => {
-    const now = new Date();
-    const inicioDate = new Date(oferta.vigenciaInicio);
-    const finDate = new Date(oferta.vigenciaFin);
-    
-    console.log('🔍 Verificando oferta:', oferta.titulo);
-    console.log('⏰ Ahora:', now.toLocaleString('es-AR'));
-    console.log('📅 Inicio:', inicioDate.toLocaleString('es-AR'));
-    console.log('📅 Fin:', finDate.toLocaleString('es-AR'));
-    console.log('✅ Activa:', now >= inicioDate && now <= finDate);
-    
-    return now >= inicioDate && now <= finDate;
-  };
+  const ahora = new Date();
+  const activas: Oferta[] = [];
+  const proximas: Oferta[] = [];
+  const finalizadas: Oferta[] = [];
 
-  const ofertasActivas = ofertas.filter(isOfertaActiva);
+  for (const oferta of ofertas) {
+    const inicio = new Date(oferta.vigenciaInicio);
+    const fin = new Date(oferta.vigenciaFin);
+    if (ahora < inicio) {
+      proximas.push(oferta);
+    } else if (ahora > fin) {
+      finalizadas.push(oferta);
+    } else {
+      activas.push(oferta);
+    }
+  }
 
-  const handleEdit = (oferta: any) => {
+  const handleEdit = (oferta: Oferta) => {
     router.push({
       pathname: '/comercio/cargar-oferta',
-      params: { 
+      params: {
         editMode: 'true',
         ofertaId: oferta.id,
         titulo: oferta.titulo,
@@ -64,64 +73,82 @@ export default function OfertasActivas() {
     );
   };
 
+  const renderOferta = (oferta: Oferta, config: GrupoConfig) => (
+    <View key={oferta.id} style={[styles.ofertaCard, config.cardEstilo]}>
+      <View style={[styles.statusBadge, config.badgeEstilo]}>
+        <Text style={[styles.statusText, config.badgeTextoEstilo]}>{config.texto}</Text>
+      </View>
+
+      <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
+      <Text style={styles.ofertaDescripcion}>{oferta.descripcion}</Text>
+
+      <View style={styles.ofertaFooter}>
+        <View style={styles.priceContainer}>
+          <DollarSign size={20} color="#059669" />
+          <Text style={styles.ofertaPrecio}>${oferta.precio}</Text>
+        </View>
+
+        <View style={styles.dateContainer}>
+          <Calendar size={16} color="#6b7280" />
+          <Text style={styles.dateText}>
+            {new Date(oferta.vigenciaInicio).toLocaleDateString('es-AR')} - {new Date(oferta.vigenciaFin).toLocaleDateString('es-AR')}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => handleEdit(oferta)}
+        >
+          <Edit2 size={18} color="#2563eb" />
+          <Text style={styles.editText}>Editar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDelete(oferta.id)}
+        >
+          <Trash2 size={18} color="#dc2626" />
+          <Text style={styles.deleteText}>Eliminar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderGrupo = (titulo: string, lista: Oferta[], config: GrupoConfig) => {
+    if (lista.length === 0) return null;
+    return (
+      <View>
+        <Text style={styles.groupTitle}>{titulo} ({lista.length})</Text>
+        {lista.map((oferta) => renderOferta(oferta, config))}
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Ofertas Activas</Text>
+            <List size={24} color="#f59e0b" />
+            <Text style={styles.sectionTitle}>Mis Ofertas</Text>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{ofertasActivas.length}</Text>
+              <Text style={styles.badgeText}>{ofertas.length}</Text>
             </View>
           </View>
 
-          {ofertasActivas.length === 0 ? (
+          {ofertas.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No hay ofertas activas</Text>
+              <Text style={styles.emptyText}>Todavía no cargaste ninguna oferta</Text>
+              <Text style={styles.emptySubtext}>Usá el botón &quot;Cargar Ofertas&quot; para publicar la primera</Text>
             </View>
           ) : (
-            ofertasActivas.map((oferta) => (
-              <View key={oferta.id} style={[styles.ofertaCard, styles.activeCard]}>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>ACTIVA</Text>
-                </View>
-                
-                <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
-                <Text style={styles.ofertaDescripcion}>{oferta.descripcion}</Text>
-                
-                <View style={styles.ofertaFooter}>
-                  <View style={styles.priceContainer}>
-                    <DollarSign size={20} color="#059669" />
-                    <Text style={styles.ofertaPrecio}>${oferta.precio}</Text>
-                  </View>
-                  
-                  <View style={styles.dateContainer}>
-                    <Calendar size={16} color="#6b7280" />
-                    <Text style={styles.dateText}>
-                      {new Date(oferta.vigenciaInicio).toLocaleDateString('es-AR')} - {new Date(oferta.vigenciaFin).toLocaleDateString('es-AR')}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity 
-                    style={styles.editButton}
-                    onPress={() => handleEdit(oferta)}
-                  >
-                    <Edit2 size={18} color="#2563eb" />
-                    <Text style={styles.editText}>Editar</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(oferta.id)}
-                  >
-                    <Trash2 size={18} color="#dc2626" />
-                    <Text style={styles.deleteText}>Eliminar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))
+            <>
+              {renderGrupo('Activas ahora', activas, CONFIG_ACTIVA)}
+              {renderGrupo('Próximas', proximas, CONFIG_PROXIMA)}
+              {renderGrupo('Finalizadas', finalizadas, CONFIG_FINALIZADA)}
+            </>
           )}
         </View>
       </View>
@@ -162,6 +189,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' as const,
     color: '#2563eb',
   },
+  groupTitle: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#374151',
+    marginBottom: 12,
+    marginTop: 4,
+  },
   empty: {
     backgroundColor: '#fff',
     padding: 40,
@@ -171,6 +205,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#9ca3af',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#c4c9d0',
+    textAlign: 'center',
+    marginTop: 8,
   },
   ofertaCard: {
     backgroundColor: '#fff',
@@ -187,6 +228,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#059669',
   },
+  proximaCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563eb',
+  },
   expiredCard: {
     borderLeftWidth: 4,
     borderLeftColor: '#e5e7eb',
@@ -194,17 +239,33 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#dcfce7',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     marginBottom: 12,
   },
+  statusBadgeActiva: {
+    backgroundColor: '#dcfce7',
+  },
+  statusBadgeProxima: {
+    backgroundColor: '#dbeafe',
+  },
+  statusBadgeFinalizada: {
+    backgroundColor: '#f3f4f6',
+  },
   statusText: {
     fontSize: 12,
     fontWeight: 'bold' as const,
-    color: '#059669',
     letterSpacing: 0.5,
+  },
+  statusTextActiva: {
+    color: '#059669',
+  },
+  statusTextProxima: {
+    color: '#2563eb',
+  },
+  statusTextFinalizada: {
+    color: '#9ca3af',
   },
   ofertaTitulo: {
     fontSize: 20,
@@ -283,3 +344,24 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
 });
+
+const CONFIG_ACTIVA: GrupoConfig = {
+  texto: 'ACTIVA',
+  cardEstilo: styles.activeCard,
+  badgeEstilo: styles.statusBadgeActiva,
+  badgeTextoEstilo: styles.statusTextActiva,
+};
+
+const CONFIG_PROXIMA: GrupoConfig = {
+  texto: 'PRÓXIMA',
+  cardEstilo: styles.proximaCard,
+  badgeEstilo: styles.statusBadgeProxima,
+  badgeTextoEstilo: styles.statusTextProxima,
+};
+
+const CONFIG_FINALIZADA: GrupoConfig = {
+  texto: 'FINALIZADA',
+  cardEstilo: styles.expiredCard,
+  badgeEstilo: styles.statusBadgeFinalizada,
+  badgeTextoEstilo: styles.statusTextFinalizada,
+};

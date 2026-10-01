@@ -31,13 +31,11 @@ export default function OfertasComercio() {
     if (comercioData) {
       setComercio(comercioData);
       const ofertasData = getOfertasByComercio(comercioId);
-      const ofertasActivas = ofertasData.filter(o => {
-        const now = new Date();
-        const inicio = new Date(o.vigenciaInicio);
-        const fin = new Date(o.vigenciaFin);
-        return now >= inicio && now <= fin;
-      });
-      setOfertas(ofertasActivas);
+      // Mostramos todas las ofertas vigentes: las activas y las que todavía
+      // no empezaron (así no se pierden ofertas recién cargadas).
+      const ahora = new Date();
+      const ofertasVisibles = ofertasData.filter(o => new Date(o.vigenciaFin) > ahora);
+      setOfertas(ofertasVisibles);
     }
   }, [comercioId, comercios, getOfertasByComercio]);
 
@@ -205,7 +203,13 @@ export default function OfertasComercio() {
                         {oferta.descripcion}
                       </Text>
                       <Text style={styles.ofertaPrecio}>${oferta.precio}</Text>
-                      
+
+                      {new Date(oferta.vigenciaInicio) > new Date() && (
+                        <View style={styles.proximamenteChip}>
+                          <Text style={styles.proximamenteText}>Próximamente</Text>
+                        </View>
+                      )}
+
                       <View style={styles.ofertaVigencia}>
                         <Text style={styles.vigenciaText}>
                           Vigencia: {new Date(oferta.vigenciaInicio).toLocaleDateString()} - {new Date(oferta.vigenciaFin).toLocaleDateString()}
@@ -410,6 +414,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' as const,
     color: '#059669',
     marginBottom: 8,
+  },
+  proximamenteChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#dbeafe',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  proximamenteText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#2563eb',
   },
   ofertaVigencia: {
     paddingTop: 8,
